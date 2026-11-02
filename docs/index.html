@@ -1,0 +1,1266 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0a1024">
+<title>ReadHumHex · Monitor de oxígeno muscular</title>
+<meta name="description" content="Monitor web de oxígeno muscular (SmO₂) para el sensor NIRS Humon Hex: Web Bluetooth, banda de FC, prueba de umbral, historial por deportista e informe imprimible. Sin instalar nada.">
+<meta property="og:title" content="ReadHumHex · Monitor de oxígeno muscular">
+<meta property="og:description" content="SmO₂ en vivo desde el navegador, prueba de umbral, historial por deportista e informe imprimible.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://csav20.github.io/readhumhex/">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M32 4l24 14v28L32 60 8 46V18z' fill='%230a1024' stroke='%2322e984' stroke-width='5'/%3E%3Ccircle cx='32' cy='32' r='8' fill='%23ee2345'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#080d20;--surface:#0f162c;--surface-2:#141d36;--surface-3:#1a2440;--line:#29324e;--line-2:#36415e;
+  --ink:#f3f5fc;--ink-2:#cbd2e3;--muted:#9aa2b8;--faint:#6f7892;
+  --accent:#ee2345;--accent-ink:#fff;--cyan:#00b7d8;--green:#22e984;--orange:#f4a21d;--red:#f21f45;
+  --z0:#8a8f9c;--z1:#8a8f9c;--z2:#00acff;--z3:#23ef7b;--z4:#f39412;--z5:#ff001f;
+  --radius:10px;--shadow:0 10px 30px rgba(0,0,0,.25);
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+a{color:var(--cyan)}
+.app{max-width:1280px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column}
+/* ── barra superior ── */
+.topbar{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:18px;padding:10px 24px;background:rgba(10,16,36,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:10px;border:0;background:none;padding:0;color:var(--ink);text-align:left}
+.brand svg{width:30px;height:30px;flex:none}
+.brand b{display:block;font-size:17px;letter-spacing:-.3px}
+.brand small{display:block;font-size:10px;color:var(--muted);letter-spacing:.06em;text-transform:uppercase}
+.nav{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;flex:1;min-width:0}
+.nav::-webkit-scrollbar{display:none}
+.nav button{border:0;background:none;color:var(--muted);padding:9px 11px;border-radius:7px;font-size:12px;font-weight:700;white-space:nowrap}
+.nav button:hover{color:var(--ink);background:var(--surface-2)}
+.nav button.is-active{color:#fff;background:var(--surface-3);box-shadow:inset 0 -2px 0 var(--accent)}
+.chips{display:flex;gap:8px;flex:none}
+.chip{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line);background:var(--surface);color:var(--ink-2);border-radius:999px;padding:7px 12px;font-size:12px;font-weight:700;max-width:220px}
+.chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chip i{width:8px;height:8px;border-radius:50%;background:#5d6680;flex:none}
+.chip.on i{background:var(--green);box-shadow:0 0 0 3px rgba(34,233,132,.18)}
+.chip.demo i{background:var(--orange)}
+main{flex:1;padding:26px 24px 40px}
+.view{display:none}.view.is-active{display:block;animation:fade .2s ease}
+@keyframes fade{from{opacity:.4;transform:translateY(3px)}to{opacity:1;transform:none}}
+/* ── cabeceras y botones ── */
+.head{display:flex;justify-content:space-between;align-items:flex-end;gap:18px;flex-wrap:wrap;margin-bottom:20px}
+.eyebrow{margin:0;font-size:10px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--accent)}
+.head h1{margin:5px 0 4px;font-size:26px;letter-spacing:-.6px;line-height:1.15}
+.head p.sub{margin:0;color:var(--muted);font-size:13px;max-width:640px}
+.actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:1px solid var(--line-2);background:var(--surface-2);color:var(--ink-2);border-radius:7px;padding:9px 13px;font-size:12px;font-weight:700;line-height:1.2;text-decoration:none;white-space:nowrap}
+.btn:hover:not(:disabled){border-color:#4a5677;color:#fff}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover:not(:disabled){filter:brightness(1.08)}
+.btn.ghost{background:transparent}
+.btn.danger{color:#ff8a9b;border-color:#5a2a3a}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.sm{padding:6px 10px;font-size:11px}
+select,input[type=text],input[type=number],input[type=date],textarea{background:var(--surface-2);border:1px solid var(--line-2);border-radius:7px;padding:8px 10px;color:var(--ink);min-width:0}
+select:focus,input:focus,textarea:focus,button:focus-visible{outline:2px solid var(--cyan);outline-offset:1px}
+label.field{display:grid;gap:5px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+label.field input,label.field select,label.field textarea{text-transform:none;letter-spacing:0;font-weight:500;font-size:14px}
+.hidden-input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+/* ── tarjetas ── */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+.panel h2{margin:0;font-size:15px}
+.panel .ph{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:12px}
+.panel .ph p{margin:3px 0 0;color:var(--muted);font-size:12px}
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:1fr 1fr}.g3{grid-template-columns:repeat(3,1fr)}.g4{grid-template-columns:repeat(4,1fr)}
+.span2{grid-column:span 2}.full{grid-column:1/-1}
+.label{margin:0 0 8px;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.big{font-size:36px;font-weight:800;letter-spacing:-1px;line-height:1}
+.big small{font-size:13px;font-weight:600;color:var(--muted);letter-spacing:0;margin-left:3px}
+.foot{margin:8px 0 0;font-size:11px;color:var(--muted)}
+.pill{display:inline-block;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;padding:4px 8px;border-radius:999px;background:var(--surface-3);color:var(--ink-2)}
+.pill.ok{background:rgba(34,233,132,.14);color:#5ff0a6}.pill.warn{background:rgba(244,162,29,.15);color:#ffc163}.pill.bad{background:rgba(242,31,69,.15);color:#ff7a90}
+.empty{display:grid;place-content:center;text-align:center;min-height:180px;color:var(--muted);gap:6px}
+.empty b{color:var(--ink-2);font-size:15px}
+/* ── en vivo ── */
+.live-top{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:14px;margin-bottom:14px}
+.ring-card{display:flex;align-items:center;gap:20px}
+.ring{--p:0;--c:#5d6680;width:118px;height:118px;border-radius:50%;flex:none;background:conic-gradient(var(--c) calc(var(--p)*1%),#1e2742 0);display:grid;place-items:center;transition:background .3s}
+.ring>div{width:94px;height:94px;border-radius:50%;background:var(--surface);display:grid;place-content:center;text-align:center}
+.ring strong{font-size:32px;line-height:1}
+.ring small{font-size:10px;color:var(--muted);margin-top:3px}
+.ring-card h2{margin:0 0 5px;font-size:18px}
+.ring-card p{margin:0;font-size:12px;color:var(--muted)}
+.zone-scale{position:relative;height:8px;border-radius:8px;margin:14px 0 4px;background:linear-gradient(90deg,var(--z2) 0 25%,var(--z3) 25% 50%,var(--z4) 50% 75%,var(--z5) 75%)}
+.zone-scale i{position:absolute;top:-5px;width:4px;height:18px;border-radius:3px;background:#fff;left:-2px;transition:left .3s;box-shadow:0 0 0 2px var(--bg)}
+.hb-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:10px}
+.hb-row div{background:var(--surface-2);border-radius:6px;padding:6px 8px}
+.hb-row dt{font-size:9px;color:var(--muted);text-transform:uppercase}
+u{text-decoration:none;text-transform:none}
+.hb-row dd{margin:2px 0 0;font-weight:800}
+.live-grid{display:grid;grid-template-columns:2fr 1fr;gap:14px}
+.chart{position:relative;background:#0a1125;border:1px solid #222b45;border-radius:8px;padding:8px 10px 4px}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart .axis{display:flex;justify-content:space-between;color:var(--faint);font-size:10px;padding:2px 0}
+.chart .overlay{position:absolute;inset:0;display:grid;place-content:center;color:var(--muted);font-size:12px;pointer-events:none;text-align:center}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:10px;font-weight:800;text-transform:uppercase;color:var(--ink-2)}
+.legend span::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;background:var(--dot)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:7px;margin:10px 0 0}
+.stats div{background:var(--surface-2);border-radius:6px;padding:8px}
+.stats dt{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.stats dd{margin:3px 0 0;font-size:16px;font-weight:800}
+.zones{list-style:none;margin:0;padding:0;display:grid;gap:7px}
+.zones li{display:grid;grid-template-columns:10px 1fr auto;gap:10px;align-items:center;padding:9px 10px;border:1px solid var(--line);border-radius:7px;font-size:12px;transition:background .2s}
+.zones li i{width:10px;height:10px;border-radius:50%}
+.zones li small{display:block;color:var(--muted);font-size:10px}
+.zones li strong{font-size:12px;color:var(--ink-2)}
+.zones li.active{background:var(--surface-3);border-color:#4a5677}
+.zbar{display:flex;height:10px;border-radius:6px;overflow:hidden;background:var(--surface-3);margin-top:10px}
+.zbar i{display:block;height:100%}
+.tip{margin-top:12px;padding:11px 12px;border-left:3px solid var(--cyan);background:var(--surface-2);border-radius:0 7px 7px 0;font-size:12px;color:var(--ink-2)}
+.status-line{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:-8px 0 16px}
+.dot{width:8px;height:8px;border-radius:50%;background:#5d6680;display:inline-block}
+.dot.rec{background:var(--red);animation:blink 1.2s infinite}.dot.cal{background:var(--orange);animation:blink .8s infinite}.dot.ok{background:var(--green)}
+@keyframes blink{50%{opacity:.25}}
+.banner{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;padding:12px 14px;margin-bottom:14px;border:1px dashed #4a5677;border-radius:9px;background:var(--surface);font-size:13px;color:var(--ink-2)}
+/* ── umbral ── */
+.stage-card{background:linear-gradient(160deg,#18223f,#10172d);border-color:#36415e}
+.stage-now{font-size:44px;font-weight:800;letter-spacing:-1.5px;line-height:1}
+.progress{height:8px;background:#222c47;border-radius:8px;overflow:hidden;margin:14px 0}
+.progress i{display:block;height:100%;width:0;background:var(--accent);transition:width .25s linear}
+.kv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.kv div{background:var(--surface-2);border-radius:7px;padding:9px}
+.kv dt{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.kv dd{margin:3px 0 0;font-size:18px;font-weight:800}
+.result{border-radius:9px;padding:14px;border:1px solid var(--line);background:var(--surface-2)}
+.result.ok{border-color:rgba(34,233,132,.45)}.result.bad{border-color:rgba(242,31,69,.45)}
+.result h3{margin:0 0 6px;font-size:15px}
+.result p{margin:4px 0;font-size:12px;color:var(--ink-2)}
+ol.steps{margin:0;padding-left:18px;color:var(--ink-2);font-size:13px;display:grid;gap:6px}
+/* ── usuarios ── */
+.user-list{display:grid;gap:8px}
+.user-item{display:grid;grid-template-columns:40px 1fr auto;gap:12px;align-items:center;padding:10px 12px;border:1px solid var(--line);border-radius:9px;background:var(--surface-2)}
+.user-item.active{border-color:var(--accent);background:#1b1f38}
+.avatar{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-weight:800;background:#24304f;color:#fff}
+.user-item b{display:block}
+.user-item small{color:var(--muted);font-size:11px}
+.form{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}
+.form .full{grid-column:1/-1}
+/* ── historial ── */
+.hist{display:grid;grid-template-columns:320px 1fr;gap:14px;align-items:start}
+.sess-list{display:grid;gap:6px;max-height:70vh;overflow:auto;padding-right:2px}
+.sess{display:grid;grid-template-columns:46px 1fr auto;gap:10px;align-items:center;text-align:left;width:100%;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--surface-2);color:var(--ink)}
+.sess.active{border-color:var(--accent);background:#1b1f38}
+.sess .date{font-size:10px;color:var(--muted);text-transform:uppercase;line-height:1.2}
+.sess .date b{display:block;font-size:17px;color:var(--ink)}
+.sess small{display:block;color:var(--muted);font-size:11px}
+.sess strong{color:var(--green)}
+.tabs{display:flex;gap:6px;margin:12px 0 10px;flex-wrap:wrap}
+.tabs button{border:1px solid var(--line-2);background:var(--surface-2);color:var(--ink-2);border-radius:6px;padding:6px 10px;font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.04em}
+.tabs button.is-active{background:var(--accent);border-color:var(--accent);color:#fff}
+/* ── progreso ── */
+.bars{display:flex;align-items:flex-end;gap:6px;height:180px;padding:10px 6px 20px;background:#0a1125;border:1px solid #222b45;border-radius:8px}
+.bars div{flex:1;min-width:8px;position:relative;border-radius:3px 3px 0 0;background:linear-gradient(180deg,#22e984,#0f7d5a)}
+.bars div span{position:absolute;bottom:-17px;left:50%;transform:translateX(-50%);font-size:9px;color:var(--muted)}
+.bars div em{position:absolute;top:-15px;left:50%;transform:translateX(-50%);font-size:9px;font-style:normal;color:var(--ink-2)}
+table.t{width:100%;border-collapse:collapse;font-size:12px}
+table.t th,table.t td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left}
+table.t th{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+table.t td.num,table.t th.num{text-align:right;font-variant-numeric:tabular-nums}
+.scroll-x{overflow-x:auto}
+/* ── ajustes ── */
+.dev{display:grid;grid-template-columns:44px 1fr auto;gap:12px;align-items:center}
+.dev .sym{font-size:30px;color:var(--accent);text-align:center}
+.dev h2{margin:3px 0}
+.dev p{margin:0;color:var(--muted);font-size:12px}
+.kvlist{display:grid}
+.kvlist div{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px}
+.kvlist div:last-child{border-bottom:0}
+.kvlist b{color:var(--ink);text-align:right}
+.kvlist span{color:var(--muted)}
+.note{font-size:12px;color:var(--muted)}
+code{background:var(--surface-3);padding:1px 5px;border-radius:4px;font-size:12px}
+/* ── guía ── */
+.guide h3{margin:0 0 8px;font-size:14px}
+.guide p,.guide li{font-size:13px;color:var(--ink-2)}
+.guide ul{padding-left:18px;margin:6px 0}
+/* ── informe ── */
+.report-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
+.report-wrap{background:#5a6278;border-radius:var(--radius);padding:22px;overflow-x:auto}
+.report{--r-ink:#1d2333;--r-muted:#5f6b7f;--r-line:#dfe4ec;--r-soft:#f4f6fa;background:#fff;color:var(--r-ink);width:100%;max-width:820px;margin:0 auto;padding:34px 38px;border-radius:4px;box-shadow:var(--shadow);font-size:12px;line-height:1.5;color-scheme:light}
+.report h1{font-size:20px;margin:0;letter-spacing:-.3px}
+.report h2{font-size:12px;margin:22px 0 8px;text-transform:uppercase;letter-spacing:.08em;color:#b0122f;border-bottom:1px solid var(--r-line);padding-bottom:5px}
+.report .rhead{display:flex;justify-content:space-between;gap:16px;align-items:flex-start;border-bottom:3px solid #1d2333;padding-bottom:12px}
+.report .rhead small{color:var(--r-muted);display:block}
+.report .rlogo{display:flex;gap:10px;align-items:center}
+.report .rlogo svg{width:34px;height:34px}
+.report .rmeta{text-align:right;font-size:11px;color:var(--r-muted)}
+.report .rgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.report .rgrid div{background:var(--r-soft);border-radius:4px;padding:7px 9px}
+.report .rgrid dt{font-size:9px;text-transform:uppercase;color:var(--r-muted);letter-spacing:.05em}
+.report .rgrid dd{margin:2px 0 0;font-weight:700;font-size:13px}
+.report .kpi dd{font-size:18px}
+.report .rchart{border:1px solid var(--r-line);border-radius:4px;padding:6px 8px}
+.report .rchart svg{width:100%;height:auto;display:block}
+.report .rchart .axis{display:flex;justify-content:space-between;font-size:9px;color:var(--r-muted)}
+.report table{width:100%;border-collapse:collapse}
+.report th,.report td{border-bottom:1px solid var(--r-line);padding:5px 6px;text-align:left}
+.report th{font-size:9px;text-transform:uppercase;color:var(--r-muted)}
+.report .num{text-align:right;font-variant-numeric:tabular-nums}
+.report .rbox{border:1px solid var(--r-line);border-left:4px solid #1d2333;padding:9px 11px;border-radius:3px;background:var(--r-soft)}
+.report .rbox.ok{border-left-color:#0d9a5b}.report .rbox.bad{border-left-color:#c8102e}
+.report .rlegend{display:flex;gap:12px;font-size:9px;color:var(--r-muted);margin-top:4px;flex-wrap:wrap}
+.report .rlegend span::before{content:"";display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:4px;background:var(--dot);vertical-align:-1px}
+.report .sign{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:38px}
+.report .sign div{border-top:1px solid var(--r-ink);padding-top:5px;text-align:center;font-size:10px;color:var(--r-muted)}
+.report .disclaimer{margin-top:20px;font-size:9.5px;color:var(--r-muted);border-top:1px solid var(--r-line);padding-top:8px}
+/* ── diálogos y avisos ── */
+dialog{border:1px solid var(--line-2);border-radius:12px;background:var(--surface);color:var(--ink);padding:0;width:min(520px,calc(100vw - 32px));box-shadow:var(--shadow)}
+dialog::backdrop{background:rgba(3,6,16,.7)}
+dialog form{padding:20px;display:grid;gap:14px}
+dialog h2{margin:0;font-size:18px}
+.rpe{display:grid;grid-template-columns:repeat(11,1fr);gap:4px}
+.rpe button{border:1px solid var(--line-2);background:var(--surface-2);border-radius:6px;padding:8px 0;font-weight:800;font-size:13px}
+.rpe button.is-active{background:var(--accent);border-color:var(--accent);color:#fff}
+.rpe-label{font-size:12px;color:var(--muted);min-height:18px}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(30px);opacity:0;background:#1c2644;border:1px solid var(--line-2);color:#fff;padding:11px 16px;border-radius:9px;font-size:13px;box-shadow:var(--shadow);transition:.25s;z-index:50;max-width:calc(100vw - 32px)}
+.toast.show{opacity:1;transform:translateX(-50%)}
+.toast.error{border-color:#7a2a3a;background:#2a1422}
+.toast.ok{border-color:#1f6b4a}
+footer{padding:18px 24px 26px;border-top:1px solid var(--line);color:var(--faint);font-size:11px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+footer a{color:var(--muted)}
+/* ── responsivo ── */
+@media (max-width:1020px){.live-top{grid-template-columns:1fr 1fr}.ring-card{grid-column:1/-1}.live-grid,.hist{grid-template-columns:1fr}.g4{grid-template-columns:1fr 1fr}}
+@media (max-width:760px){
+  .topbar{flex-wrap:wrap;padding:10px 16px;gap:10px}.nav{order:3;flex-basis:100%}.chips{margin-left:auto}.chip{max-width:150px}
+  main{padding:18px 16px 30px}.g2,.g3,.form{grid-template-columns:1fr}.span2{grid-column:auto}
+  .head h1{font-size:22px}.stats{grid-template-columns:1fr 1fr}.kv{grid-template-columns:1fr 1fr}
+  .report-wrap{padding:8px}.report{padding:20px 16px}.report .rgrid{grid-template-columns:1fr 1fr}
+  .dev{grid-template-columns:36px 1fr}.dev .btn{grid-column:1/-1}
+}
+@media (max-width:420px){.live-top{grid-template-columns:1fr}.chip#user-chip{display:none}.rpe{grid-template-columns:repeat(6,1fr)}}
+/* ── impresión: solo el informe ── */
+@media print{
+  @page{size:A4;margin:12mm}
+  html,body{background:#fff!important}
+  .report,.report *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  body *{visibility:hidden}
+  #report-doc,#report-doc *{visibility:visible}
+  #report-doc{position:absolute;left:0;top:0;width:100%;max-width:none;box-shadow:none;padding:0;margin:0}
+  .report h2{break-after:avoid}.report .rchart,.report .rbox,.report table{break-inside:avoid}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <button class="brand" data-go="live" aria-label="Ir a En vivo">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 4l24 14v28L32 60 8 46V18z" fill="#0f162c" stroke="#22e984" stroke-width="4"/><path d="M20 38c4-10 8-14 12-14s8 6 12 2" fill="none" stroke="#00b7d8" stroke-width="4" stroke-linecap="round"/><circle cx="32" cy="24" r="4.5" fill="#ee2345"/></svg>
+      <span><b>ReadHumHex</b><small>Oxígeno muscular · NIRS</small></span>
+    </button>
+    <nav class="nav" aria-label="Secciones">
+      <button data-go="users">Deportista</button>
+      <button data-go="live" class="is-active">En vivo</button>
+      <button data-go="threshold">Umbral</button>
+      <button data-go="history">Historial</button>
+      <button data-go="progress">Progreso</button>
+      <button data-go="report">Informe</button>
+      <button data-go="settings">Dispositivos</button>
+      <button data-go="guide">Guía</button>
+    </nav>
+    <div class="chips">
+      <button class="chip" id="user-chip" data-go="users" title="Deportista activo"><i></i><span>Sin deportista</span></button>
+      <button class="chip" id="conn-chip" title="Conectar Humon Hex"><i></i><span>Hex desconectado</span></button>
+    </div>
+  </header>
+
+  <main>
+    <!-- ═════════════ DEPORTISTA ═════════════ -->
+    <section class="view" id="users" aria-labelledby="users-title">
+      <div class="head">
+        <div><p class="eyebrow">Deportista</p><h1 id="users-title">Fichas de deportistas</h1><p class="sub">Cada sesión queda asociada al deportista activo. Los datos se guardan solo en este navegador.</p></div>
+        <div class="actions"><button class="btn primary" id="user-new">+ Nuevo deportista</button></div>
+      </div>
+      <div class="grid g2">
+        <article class="panel"><div class="ph"><div><h2>Deportistas registrados</h2><p>Selecciona uno para usarlo en las próximas sesiones.</p></div></div><div class="user-list" id="user-list"></div></article>
+        <article class="panel">
+          <div class="ph"><div><h2 id="user-form-title">Nuevo deportista</h2><p>Los campos con * son obligatorios. El peso permite expresar el umbral en W/kg.</p></div></div>
+          <form class="form" id="user-form" autocomplete="off">
+            <input type="hidden" name="id">
+            <label class="field full">Nombre completo *<input type="text" name="name" required maxlength="80" placeholder="Nombre y apellido"></label>
+            <label class="field">Fecha de nacimiento<input type="date" name="birth"></label>
+            <label class="field">Sexo<select name="sex"><option value="">—</option><option value="F">Femenino</option><option value="M">Masculino</option><option value="X">Otro / prefiere no decir</option></select></label>
+            <label class="field">Peso (kg)<input type="number" name="weight" min="20" max="250" step="0.1" placeholder="70"></label>
+            <label class="field">Talla (cm)<input type="number" name="height" min="90" max="230" step="0.5" placeholder="175"></label>
+            <label class="field">Deporte / disciplina<input type="text" name="sport" maxlength="60" placeholder="Ciclismo, remo, triatlón…"></label>
+            <label class="field">Nivel<select name="level"><option value="">—</option><option>Recreativo</option><option>Competitivo</option><option>Alto rendimiento</option><option>Paralímpico</option><option>Rehabilitación</option></select></label>
+            <label class="field">Músculo evaluado<select name="muscle"><option value="">—</option><option>Vasto lateral</option><option>Recto femoral</option><option>Gastrocnemio</option><option>Bíceps braquial</option><option>Tríceps braquial</option><option>Deltoides</option><option>Otro</option></select></label>
+            <label class="field">Lado<select name="side"><option value="">—</option><option>Derecho</option><option>Izquierdo</option></select></label>
+            <label class="field full">Evaluador / institución<input type="text" name="evaluator" maxlength="100" placeholder="Nombre del evaluador · laboratorio"></label>
+            <label class="field full">Observaciones<textarea name="notes" rows="2" maxlength="400" placeholder="Lesiones, objetivos, medicación relevante para la prueba…"></textarea></label>
+            <div class="actions full"><button class="btn primary" type="submit">Guardar deportista</button><button class="btn ghost" type="button" id="user-cancel">Limpiar</button></div>
+          </form>
+        </article>
+      </div>
+    </section>
+
+    <!-- ═════════════ EN VIVO ═════════════ -->
+    <section class="view is-active" id="live" aria-labelledby="live-title">
+      <div class="head">
+        <div><p class="eyebrow" id="live-eyebrow">Entrenamiento</p><h1 id="live-title">Oxígeno muscular en tiempo real</h1><p class="sub" id="live-sub">Conecta el Humon Hex o prueba el modo demostración. No hace falta instalar nada.</p></div>
+        <div class="actions">
+          <select id="activity" aria-label="Actividad"><option value="cycling">Ciclismo</option><option value="running">Carrera</option><option value="rowing">Remo</option><option value="other">Otra</option></select>
+          <select id="wtype" aria-label="Tipo de sesión"><option value="endurance">Resistencia</option><option value="interval">Intervalos</option><option value="incremental">Incremental (umbral)</option></select>
+          <button class="btn primary" id="btn-connect">Conectar Hex</button>
+          <button class="btn" id="btn-demo">Modo demo</button>
+          <label class="btn" for="csv-input">Importar CSV</label><input class="hidden-input" id="csv-input" type="file" accept=".csv,text/csv,.txt">
+          <button class="btn" id="btn-pause" disabled>Pausar</button>
+          <button class="btn danger" id="btn-finish" disabled>Finalizar</button>
+        </div>
+      </div>
+      <div class="status-line"><span class="dot" id="rec-dot"></span><span id="rec-text">Sin sesión</span><span>·</span><span id="rec-user">Sin deportista</span></div>
+      <div class="banner" id="no-user-banner" hidden><span>No hay un deportista activo. La sesión se guardará como <b>sin asignar</b>.</span><button class="btn sm" data-go="users">Crear ficha</button></div>
+
+      <div class="live-top">
+        <article class="panel ring-card">
+          <div class="ring" id="ring"><div><strong id="v-smo2">—</strong><small>SmO₂ %</small></div></div>
+          <div><p class="label">Oxígeno muscular</p><h2 id="zone-name">Esperando datos</h2><p id="zone-desc">La lectura aparece al recibir el primer paquete del sensor.</p>
+            <dl class="hb-row"><div><dt>HbO₂ <u>µM</u></dt><dd id="v-hbo2">—</dd></div><div><dt>HHb <u>µM</u></dt><dd id="v-hhb">—</dd></div><div><dt>tHb <u>µM</u></dt><dd id="v-thb">—</dd></div></dl>
+          </div>
+        </article>
+        <article class="panel"><p class="label">Frecuencia cardíaca</p><p class="big" id="v-hr">—<small>lpm</small></p><p class="foot" id="hr-src">Sin banda de FC. El Hex no mide FC.</p><button class="btn sm" id="btn-hr" style="margin-top:10px">Conectar banda FC</button></article>
+        <article class="panel"><p class="label">Zona actual</p><p class="big" id="v-zone">—<small>/ 5</small></p><div class="zone-scale"><i id="zone-marker"></i></div><p class="foot" id="zone-label">Sin lectura</p></article>
+        <article class="panel"><p class="label">Tiempo de sesión</p><p class="big" id="v-time">00:00</p><p class="foot" id="v-intensity">—</p><p class="foot" id="v-speed"></p></article>
+      </div>
+
+      <div class="live-grid">
+        <article class="panel">
+          <div class="ph"><div><h2>Vista integrada</h2><p>Últimos 5 minutos · SmO₂, FC y zona de fondo</p></div><div class="legend"><span style="--dot:var(--green)">SmO₂</span><span style="--dot:#eef2fa">FC</span><span style="--dot:linear-gradient(90deg,var(--z2),var(--z5))">Zonas</span></div></div>
+          <div class="chart"><div id="chart-live"></div><div class="axis"><span>−5 min</span><span id="axis-now">00:00</span><span>ahora</span></div><div class="overlay" id="chart-live-empty">Sin muestras todavía</div></div>
+          <dl class="stats"><div><dt>SmO₂ mín.</dt><dd id="s-min">—</dd></div><div><dt>SmO₂ prom.</dt><dd id="s-avg">—</dd></div><div><dt>SmO₂ máx.</dt><dd id="s-max">—</dd></div><div><dt>Desaturación</dt><dd id="s-desat">—</dd></div></dl>
+          <div class="grid g2" style="margin-top:14px">
+            <div><p class="label">Hemoglobina <u>(µM)</u></p><div class="chart"><div id="chart-hb"></div><div class="overlay" id="chart-hb-empty">Sin datos</div></div><div class="legend" style="margin-top:6px"><span style="--dot:#ff5c72">HbO₂</span><span style="--dot:#6aa7ff">HHb</span><span style="--dot:#c9a6ff">tHb</span></div></div>
+            <div><p class="label">Tiempo en cada zona</p><div class="zbar" id="zone-bar"></div><dl class="stats" id="zone-dist" style="grid-template-columns:repeat(2,1fr)"></dl></div>
+          </div>
+        </article>
+        <aside class="panel">
+          <div class="ph"><div><h2>Zonas de oxigenación</h2><p>Zona calculada por el Hex, relativa a la calibración de esta colocación.</p></div></div>
+          <ol class="zones" id="zone-list"></ol>
+          <div class="tip" id="tip">Conecta el sensor y haz un calentamiento progresivo de 5 a 10 minutos.</div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- ═════════════ UMBRAL ═════════════ -->
+    <section class="view" id="threshold" aria-labelledby="thr-title">
+      <div class="head">
+        <div><p class="eyebrow">Prueba incremental</p><h1 id="thr-title">Umbral por oxígeno muscular</h1><p class="sub">Protocolo escalonado. Al terminar se ajustan dos rectas a la curva de SmO₂. Su punto de quiebre marca el umbral. Si el ajuste no es confiable, la prueba se declara no concluyente.</p></div>
+        <div class="actions"><button class="btn primary" id="thr-start-hex">Iniciar con Hex</button><button class="btn" id="thr-start-demo">Iniciar en demo</button><button class="btn danger" id="thr-stop" disabled>Detener (agotamiento)</button></div>
+      </div>
+      <div class="grid g3">
+        <article class="panel">
+          <div class="ph"><div><h2>Protocolo</h2><p>Estándar: 30 W iniciales, +30 W cada 3 min.</p></div></div>
+          <div class="form" style="grid-template-columns:1fr 1fr">
+            <label class="field full">Modalidad<select id="p-mode"><option value="bike">Bicicleta (W)</option><option value="run">Cinta (km/h)</option></select></label>
+            <label class="field">Inicio<input type="number" id="p-start" value="30" step="any" min="0"></label>
+            <label class="field">Incremento<input type="number" id="p-step" value="30" step="any" min="0"></label>
+            <label class="field">Duración etapa (min)<input type="number" id="p-stage" value="3" step="0.5" min="1" max="10"></label>
+            <label class="field">Etapas mínimas<input type="number" id="p-min" value="3" step="1" min="3" max="10"></label>
+          </div>
+          <ol class="steps" style="margin-top:14px"><li>Coloca el Hex sobre el músculo (p. ej., vasto lateral) y fíjalo con la banda.</li><li>Espera a que termine la calibración: no muevas el sensor.</li><li>Sube la intensidad cuando la app lo indique.</li><li>Pulsa <b>Detener</b> cuando no puedas sostener la etapa.</li></ol>
+        </article>
+        <article class="panel stage-card">
+          <p class="eyebrow">Etapa actual</p>
+          <p class="stage-now" id="thr-stage">Preparado</p>
+          <div class="progress"><i id="thr-progress"></i></div>
+          <p class="note" id="thr-msg">Configura el protocolo y elige Hex o demo.</p>
+          <dl class="kv" style="margin-top:12px"><div><dt>Intensidad</dt><dd id="thr-int">—</dd></div><div><dt>Restante</dt><dd id="thr-left">—</dd></div><div><dt>SmO₂</dt><dd id="thr-smo2">—</dd></div><div><dt>FC</dt><dd id="thr-hr">—</dd></div><div><dt>Próxima</dt><dd id="thr-next">—</dd></div><div><dt>Total</dt><dd id="thr-total">—</dd></div></dl>
+        </article>
+        <article class="panel">
+          <div class="ph"><div><h2>Resultado</h2><p>Último análisis de umbral del deportista activo.</p></div></div>
+          <div id="thr-result"><div class="empty"><b>Sin resultado</b><span>Completa una prueba incremental.</span></div></div>
+        </article>
+        <article class="panel full">
+          <div class="ph"><div><h2>Curva de la prueba</h2><p>SmO₂ por etapa con el ajuste bilineal superpuesto</p></div><div class="legend"><span style="--dot:var(--green)">SmO₂</span><span style="--dot:#ffd166">Ajuste</span><span style="--dot:var(--accent)">Umbral</span></div></div>
+          <div class="chart"><div id="chart-thr"></div><div class="overlay" id="chart-thr-empty">La curva aparece durante la prueba</div></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ═════════════ HISTORIAL ═════════════ -->
+    <section class="view" id="history" aria-labelledby="hist-title">
+      <div class="head">
+        <div><p class="eyebrow">Historial</p><h1 id="hist-title">Sesiones guardadas</h1><p class="sub" id="hist-sub">Sesiones del deportista activo.</p></div>
+        <div class="actions"><label class="note"><input type="checkbox" id="hist-all"> Ver todos los deportistas</label></div>
+      </div>
+      <div class="hist">
+        <div class="panel"><div class="sess-list" id="sess-list"></div></div>
+        <article class="panel" id="sess-detail"></article>
+      </div>
+    </section>
+
+    <!-- ═════════════ PROGRESO ═════════════ -->
+    <section class="view" id="progress" aria-labelledby="prog-title">
+      <div class="head"><div><p class="eyebrow">Progreso</p><h1 id="prog-title">Evolución del deportista</h1><p class="sub" id="prog-sub">Indicadores de las sesiones guardadas.</p></div></div>
+      <div class="grid g4" style="margin-bottom:14px">
+        <article class="panel"><p class="label">Sesiones</p><p class="big" id="pg-count">0</p></article>
+        <article class="panel"><p class="label">Tiempo total</p><p class="big" id="pg-time">0<small>min</small></p></article>
+        <article class="panel"><p class="label">SmO₂ promedio</p><p class="big" id="pg-smo2">—</p></article>
+        <article class="panel"><p class="label">Último umbral</p><p class="big" id="pg-thr">—</p><p class="foot" id="pg-thr-foot"></p></article>
+      </div>
+      <div class="grid g2">
+        <article class="panel"><div class="ph"><div><h2>SmO₂ promedio por sesión</h2><p>Últimas 12 sesiones</p></div></div><div class="bars" id="pg-bars"></div></article>
+        <article class="panel"><div class="ph"><div><h2>Umbral en el tiempo</h2><p>Pruebas incrementales concluyentes</p></div></div><div class="chart"><div id="pg-thr-chart"></div><div class="overlay" id="pg-thr-empty">Sin pruebas concluyentes</div></div></article>
+        <article class="panel"><div class="ph"><div><h2>Distribución de zonas acumulada</h2><p>Tiempo total en cada zona</p></div></div><div class="zbar" id="pg-zbar"></div><dl class="stats" id="pg-zones" style="grid-template-columns:repeat(4,1fr)"></dl></article>
+        <article class="panel"><div class="ph"><div><h2>Tabla de sesiones</h2><p>Resumen comparativo</p></div></div><div class="scroll-x"><table class="t" id="pg-table"></table></div></article>
+      </div>
+    </section>
+
+    <!-- ═════════════ INFORME ═════════════ -->
+    <section class="view" id="report" aria-labelledby="rep-title">
+      <div class="head"><div><p class="eyebrow">Informe</p><h1 id="rep-title">Informe de la sesión</h1><p class="sub">Listo para imprimir o guardar como PDF. También se descarga como HTML, CSV o JSON.</p></div></div>
+      <div class="report-toolbar">
+        <select id="rep-session" aria-label="Sesión del informe" style="min-width:260px;max-width:100%"></select>
+        <button class="btn primary" id="rep-print">Imprimir / PDF</button>
+        <button class="btn" id="rep-html">Descargar HTML</button>
+        <button class="btn" id="rep-csv">CSV de la sesión</button>
+        <button class="btn" id="rep-json">JSON</button>
+      </div>
+      <div class="report-wrap"><div class="report" id="report-doc"><div class="empty" style="color:#5f6b7f"><b style="color:#1d2333">No hay sesiones</b><span>Graba una sesión (o usa el modo demo) para generar un informe.</span></div></div></div>
+    </section>
+
+    <!-- ═════════════ DISPOSITIVOS ═════════════ -->
+    <section class="view" id="settings" aria-labelledby="set-title">
+      <div class="head"><div><p class="eyebrow">Dispositivos y datos</p><h1 id="set-title">Conexiones BLE</h1><p class="sub">Dos conexiones independientes: el Hex para la oxigenación y una banda torácica para la frecuencia cardíaca.</p></div></div>
+      <div class="grid g2">
+        <article class="panel dev"><span class="sym">⬡</span><div><p class="eyebrow">Humon Hex</p><h2 id="dev-name">No conectado</h2><p id="dev-detail">Recibe SmO₂, HbO₂, HHb, zona y estado de sesión.</p></div><button class="btn primary" id="set-connect">Conectar Hex</button></article>
+        <article class="panel dev"><span class="sym">♥</span><div><p class="eyebrow">Banda de frecuencia cardíaca</p><h2 id="hr-name">No conectada</h2><p>Cualquier banda con el perfil estándar Heart Rate (0x180D).</p></div><button class="btn" id="set-hr">Conectar banda</button></article>
+        <article class="panel"><div class="ph"><div><h2>Estado</h2></div></div><div class="kvlist">
+          <div><span>Estado del Hex</span><b id="st-state">—</b></div>
+          <div><span>Calibración</span><b id="st-cal">Pendiente</b></div>
+          <div><span>Batería Hex</span><b id="st-bat">—</b></div>
+          <div><span>Batería banda</span><b id="st-hrbat">—</b></div>
+          <div><span>Banda FC</span><b id="st-hr">Sin banda</b></div>
+        </div></article>
+        <article class="panel"><div class="ph"><div><h2>Tasa de paquetes</h2><p>Media móvil de 10 s por característica</p></div></div><div class="kvlist">
+          <div><span>CALC · 0000deef</span><b id="rate-deef">—</b></div>
+          <div><span>RAW · 0000beef</span><b id="rate-beef">—</b></div>
+          <div><span>STATE · 0000abc0</span><b id="rate-abc0">—</b></div>
+          <div><span>CMD · 0000abcd</span><b id="rate-abcd">—</b></div>
+        </div><p class="foot" id="rate-verdict">RAW sin datos.</p><button class="btn sm" id="btn-diag" style="margin-top:10px">Exportar diagnóstico BLE</button></article>
+        <article class="panel"><div class="ph"><div><h2>Modo demostración</h2><p>Datos simulados, siempre rotulados como demo.</p></div></div>
+          <label class="field">Velocidad de simulación<select id="demo-speed"><option value="1">Tiempo real (1×)</option><option value="5">5×</option><option value="10">10×</option><option value="20">20×</option></select></label>
+          <p class="foot">Con 10×, una prueba incremental de 8 etapas toma unos 2,5 minutos.</p></article>
+        <article class="panel"><div class="ph"><div><h2>Respaldo de datos</h2><p>Deportistas y sesiones guardados en este navegador</p></div></div>
+          <div class="actions"><button class="btn" id="bk-export">Exportar respaldo (.json)</button><label class="btn" for="bk-input">Importar respaldo</label><input class="hidden-input" type="file" id="bk-input" accept=".json,application/json"><button class="btn danger" id="bk-clear">Borrar todo</button></div>
+          <p class="foot" id="bk-usage">—</p></article>
+      </div>
+      <p class="note" style="margin-top:14px">Web Bluetooth funciona en <b>Chrome o Edge</b> (computador o Android) desde HTTPS. Safari y los navegadores de iPhone no lo ofrecen; ahí funcionan el modo demo, el historial y los informes.</p>
+    </section>
+
+    <!-- ═════════════ GUÍA ═════════════ -->
+    <section class="view guide" id="guide" aria-labelledby="guide-title">
+      <div class="head"><div><p class="eyebrow">Guía</p><h1 id="guide-title">Cómo usar ReadHumHex</h1><p class="sub">Funciona en el navegador, sin instalar nada. Los datos no salen del dispositivo.</p></div></div>
+      <div class="grid g2">
+        <article class="panel"><h3>1 · Prepara</h3><ul><li>Abre esta página en <b>Chrome o Edge</b> (computador o Android).</li><li>Crea la ficha del deportista en <b>Deportista</b> (nombre, peso, músculo evaluado).</li><li>Enciende el Hex y colócalo sobre el vientre muscular, ajustado con la banda y protegido de la luz.</li></ul></article>
+        <article class="panel"><h3>2 · Conecta</h3><ul><li><b>Conectar Hex</b> abre el selector Bluetooth del navegador. Elige tu Hex.</li><li>El Hex se calibra en cada colocación (fase de oscuridad y fase de potencia del LED). No lo muevas durante la calibración.</li><li>Opcional: <b>Conectar banda FC</b> para sumar la frecuencia cardíaca de una banda torácica.</li></ul></article>
+        <article class="panel"><h3>3 · Entrena o evalúa</h3><ul><li><b>Resistencia / Intervalos</b>: la grabación empieza sola cuando el Hex queda activo.</li><li><b>Incremental</b>: usa la pestaña <b>Umbral</b>. La app marca las etapas y, al detener, calcula el quiebre de SmO₂.</li><li><b>Pausar</b> solo detiene la grabación. El sensor sigue calibrado.</li></ul></article>
+        <article class="panel"><h3>4 · Revisa e informa</h3><ul><li><b>Finalizar</b> pide el esfuerzo percibido (Borg CR-10) y notas, y guarda la sesión.</li><li><b>Informe</b> genera un documento imprimible (PDF) con los datos del deportista, gráficos, zonas y umbral.</li><li>Exporta CSV para Excel, R o Python, o haz un respaldo .json completo.</li></ul></article>
+        <article class="panel"><h3>Zonas de oxigenación</h3><ol class="zones" id="guide-zones"></ol></article>
+        <article class="panel"><h3>Formato CSV para importar</h3><p>Cabecera opcional con cualquiera de estas columnas (separador coma, punto y coma o tabulación):</p><p><code>tiempo_s, smo2, hbo2, hhb, zona, fc, intensidad</code></p><p>También sirve una sola columna de SmO₂ (%) a 1 muestra por segundo. El CSV importado se guarda como sesión del deportista activo.</p><h3 style="margin-top:14px">Alcance</h3><p>Herramienta de visualización y registro para entrenamiento e investigación. <b>No es un dispositivo médico ni entrega diagnósticos.</b> Las zonas las calcula el firmware del Hex. El umbral es una estimación por ajuste bilineal y se informa como no concluyente cuando el ajuste es pobre.</p></article>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>ReadHumHex v<span id="ver"></span> · © 2026 ActionSmart® · Claudio Abarca Vargas · <a href="https://github.com/Csav20/readhumhex">GitHub</a></span>
+    <span>Cliente independiente, no afiliado a Humon ni a Dynometrics. «Humon» y «Hex» son marcas de sus titulares.</span>
+  </footer>
+</div>
+
+<dialog id="finish-dlg">
+  <form method="dialog" id="finish-form">
+    <div><p class="eyebrow">Finalizar sesión</p><h2>¿Cómo fue el esfuerzo?</h2></div>
+    <div><p class="label">Esfuerzo percibido · Borg CR-10</p><div class="rpe" id="rpe"></div><p class="rpe-label" id="rpe-label">Sin evaluar</p></div>
+    <label class="field">Notas de la sesión<textarea id="finish-notes" rows="3" maxlength="500" placeholder="Sensaciones, incidencias, condiciones…"></textarea></label>
+    <label class="note" id="raw-wrap" hidden><input type="checkbox" id="raw-dl"> Descargar también la señal cruda (RAW) en .csv</label>
+    <p class="note" id="finish-summary"></p>
+    <div class="actions"><button class="btn primary" value="save" id="finish-save">Guardar sesión</button><button class="btn danger" value="discard" id="finish-discard">Descartar</button></div>
+  </form>
+</dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<noscript><p style="padding:20px;color:#fff">ReadHumHex necesita JavaScript activado.</p></noscript>
+
+<script>
+'use strict';
+/* ════════════════════════════════════════════════════════════════════════════
+   ReadHumHex — cliente web para el sensor NIRS Humon Hex
+   © 2026 ActionSmart® · Claudio Abarca Vargas · https://github.com/Csav20/readhumhex
+   Todo corre en el navegador: Web Bluetooth para los sensores, localStorage para
+   los datos, SVG propio para los gráficos. Sin servidores ni dependencias.
+   ════════════════════════════════════════════════════════════════════════════ */
+const VERSION='1.0.0';
+const $=id=>document.getElementById(id);
+const $$=(sel,root=document)=>[...root.querySelectorAll(sel)];
+const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const mean=a=>a.length?a.reduce((s,v)=>s+v,0)/a.length:NaN;
+const fin=Number.isFinite;
+const r0=v=>fin(v)?Math.round(v):'—';
+const r1=v=>fin(v)?(Math.round(v*10)/10).toLocaleString('es-CL'):'—';
+function fmtTime(sec){sec=Math.max(0,Math.floor(sec||0));const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60),s=sec%60;return (h?h+':'+String(m).padStart(2,'0'):String(m).padStart(2,'0'))+':'+String(s).padStart(2,'0')}
+const uid=()=>(crypto.randomUUID?crypto.randomUUID():Date.now().toString(36)+Math.random().toString(36).slice(2));
+let toastTimer;
+function toast(msg,kind=''){const t=$('toast');t.textContent=msg;t.className='toast show '+kind;clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.className='toast',3600)}
+function download(name,content,type){const url=URL.createObjectURL(new Blob([content],{type}));const a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
+const slug=s=>String(s||'sin-nombre').normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^a-z0-9]+/gi,'-').replace(/^-|-$/g,'').toLowerCase()||'sesion';
+
+/* ── Catálogos ─────────────────────────────────────────────────────────────── */
+const ACTIVITY={cycling:'Ciclismo',running:'Carrera',rowing:'Remo',other:'Otra'};
+const WTYPE={endurance:'Resistencia',interval:'Intervalos',incremental:'Incremental (umbral)'};
+const SOURCE={hex:'Humon Hex',demo:'Demostración (simulado)',csv:'CSV importado'};
+/* La zona NO se deriva de cortes de SmO₂: el Hex la envía en el paquete CALC,
+   relativa a la calibración de la colocación. 0 = sin zona; 1 = fuera de rango. */
+const ZONES={
+  0:{name:'Sin zona',short:'Sin zona',color:'#8a8f9c',desc:'El sensor aún no clasifica la señal.',tip:'Espera unos segundos a que la señal se estabilice.'},
+  1:{name:'Zona gris',short:'Gris',color:'#8a8f9c',desc:'Señal fuera de rango clasificable.',tip:'Revisa la colocación y que el sensor no reciba luz externa.'},
+  2:{name:'Recuperación',short:'Recuperación',color:'#00acff',desc:'La oferta de oxígeno supera la demanda.',tip:'Buen momento para recuperar entre esfuerzos.'},
+  3:{name:'Estado estable',short:'Estable',color:'#23ef7b',desc:'Oferta y demanda en equilibrio.',tip:'Intensidad sostenible: ideal para trabajo aeróbico prolongado.'},
+  4:{name:'Próximo al límite',short:'Próximo al límite',color:'#f39412',desc:'La demanda supera a la oferta.',tip:'Te acercas al límite: dosifica si buscas sostener el esfuerzo.'},
+  5:{name:'Límite',short:'Límite',color:'#ff001f',desc:'Desoxigenación marcada; fatiga inminente.',tip:'Reduce la intensidad para que el músculo se reoxigene.'}
+};
+const zoneIdx=v=>{const z=Math.round(v);return fin(z)&&z>=0&&z<=5?z:0};
+const RPE=['Reposo','Muy, muy suave','Muy suave','Suave','Moderado','Algo duro','Duro','Duro +','Muy duro','Muy, muy duro','Máximo'];
+
+/* ── Almacenamiento ────────────────────────────────────────────────────────── */
+const STORE_KEY='readhumhex-v1';
+const db={users:[],sessions:[],activeUserId:null,settings:{demoSpeed:10,protocol:{mode:'bike',start:30,step:30,stageMin:3,minStages:3}}};
+function loadDb(){
+  try{const raw=localStorage.getItem(STORE_KEY);if(!raw)return;const d=JSON.parse(raw);
+    if(Array.isArray(d.users))db.users=d.users;if(Array.isArray(d.sessions))db.sessions=d.sessions;
+    db.activeUserId=d.activeUserId||null;if(d.settings)db.settings={...db.settings,...d.settings,protocol:{...db.settings.protocol,...(d.settings.protocol||{})}};
+  }catch(e){console.warn('ReadHumHex: no se pudo leer el almacenamiento',e)}
+}
+function saveDb(){
+  try{localStorage.setItem(STORE_KEY,JSON.stringify(db));return true}
+  catch(e){toast('No se pudo guardar: el almacenamiento del navegador está lleno o bloqueado.','error');return false}
+}
+const activeUser=()=>db.users.find(u=>u.id===db.activeUserId)||null;
+const userById=id=>db.users.find(u=>u.id===id)||null;
+function age(birth,at=new Date()){if(!birth)return null;const b=new Date(birth+'T00:00:00');if(isNaN(b))return null;let a=at.getFullYear()-b.getFullYear();const m=at.getMonth()-b.getMonth();if(m<0||(m===0&&at.getDate()<b.getDate()))a--;return a>=0&&a<120?a:null}
+const initials=n=>String(n||'?').trim().split(/\s+/).slice(0,2).map(w=>w[0]).join('').toUpperCase();
+
+/* ════════════════════════════════════════════════════════════════════════════
+   PROTOCOLO BLE DEL HUMON HEX (little-endian)
+   Servicio propietario 0000f00d-…; ninguna característica es legible:
+     CALC  0000deef  notify  4 × float32 = [HHb µM, HbO₂ µM, SmO₂ 0–1, zona 0–5]
+     RAW   0000beef  notify  8 × uint16  = cuentas ópticas, cadenas A y B
+     CMD   0000abcd  write+notify  opcode de 1 byte; respuesta por notificación (FIFO)
+     STATE 0000abc0  notify  1 byte con el estado de la sesión
+   La frecuencia cardíaca NO la mide el Hex: llega de una banda externa (0x180D).
+   ════════════════════════════════════════════════════════════════════════════ */
+const UUID={data:'0000f00d-1212-efde-1523-785fef13d123',calc:'0000deef-1212-efde-1523-785fef13d123',raw:'0000beef-1212-efde-1523-785fef13d123',cmd:'0000abcd-1212-efde-1523-785fef13d123',state:'0000abc0-1212-efde-1523-785fef13d123'};
+const CMD={STATE:0x01,CAL_A:0x10,CAL_B:0x12,START_ENDURANCE:0x6F,START_INTERVAL:0x7A,STOP:0x7B};
+const STATES={0:{id:'IDLE',label:'En reposo',active:false},1:{id:'DARK_CAL',label:'Calibrando (oscuridad): no muevas el sensor',active:false},2:{id:'POWER_CAL',label:'Calibrando (potencia LED): no muevas el sensor',active:false},3:{id:'ACTIVE',label:'Activo',active:true},4:{id:'COMPLETE',label:'Sesión anterior sin cerrar',active:false},5:{id:'OFF',label:'Hex apagado',active:false}};
+
+const hex={device:null,server:null,connected:false,cmdQueue:null,info:'',state:null,calibrated:false,calibration:null,firstCalcAt:0,statePoll:null,
+  hrDevice:null,hr:null,hrStatus:'Sin banda',packetTimes:{DEEF:[],BEEF:[],ABC0:[],ABCD:[]},diag:{}};
+
+/* Cola de comandos: la respuesta llega en la misma característica y se asocia por
+   posición (no hay id de transacción), así que solo puede haber una petición en vuelo. */
+function makeQueue(ch){
+  const q=[];
+  const pump=()=>ch.writeValueWithResponse(new Uint8Array([q[0].op])).catch(err=>settle(err,null));
+  function settle(err,val){const p=q.shift();if(!p)return;err?p.reject(err):p.resolve(val);if(q.length)pump()}
+  ch.addEventListener('characteristicvaluechanged',e=>{recordPacket('ABCD',e.target.value);if(q.length)settle(null,e.target.value)});
+  return{
+    request(op){return new Promise((resolve,reject)=>{const idle=!q.length;q.push({op,resolve,reject});if(idle)pump();setTimeout(()=>{const i=q.findIndex(p=>p.resolve===resolve);if(i===0){settle(new Error('timeout'),null)}},2500)})},
+    send(op){return ch.writeValueWithResponse(new Uint8Array([op]))}
+  };
+}
+const RATE_WIN=10000;
+function recordPacket(src,dv){
+  const now=Date.now(),t=hex.packetTimes[src];t.push(now);while(t.length&&now-t[0]>RATE_WIN)t.shift();
+  const bytes=[...new Uint8Array(dv.buffer,dv.byteOffset,dv.byteLength)];
+  const ring=hex.diag[src]||(hex.diag[src]=[]);ring.push({at:new Date(now).toISOString(),len:bytes.length,hex:bytes.map(b=>b.toString(16).padStart(2,'0')).join('')});if(ring.length>120)ring.shift();
+}
+function packetRate(src){const t=hex.packetTimes[src],now=Date.now();while(t.length&&now-t[0]>RATE_WIN)t.shift();if(t.length<2)return 0;const span=(t.at(-1)-t[0])/1000;return span>0?(t.length-1)/span:0}
+
+function hexMainAction(){
+  if(hex.connected&&rec.state==='idle'){armHexSession();return}
+  connectHex();
+}
+function armHexSession(){
+  hex.calibrated=false;setRecUi('cal','Iniciando sesión en el Hex…');startStatePolling();
+}
+async function connectHex(){
+  if(hex.connected){if(confirm('¿Desconectar el Humon Hex?'))hex.device?.gatt?.disconnect();return false}
+  if(rec.source==='demo'&&rec.state!=='idle'){toast('Termina la sesión demo antes de conectar el Hex.','error');return false}
+  if(!navigator.bluetooth){toast('Bluetooth web no disponible: usa Chrome o Edge en computador o Android (HTTPS).','error');return false}
+  try{
+    setConn('Buscando Hex…');
+    const device=await navigator.bluetooth.requestDevice({filters:[{services:[UUID.data]}],optionalServices:['battery_service','device_information']});
+    hex.device=device;device.addEventListener('gattserverdisconnected',onHexDisconnected);
+    setConn('Conectando…');
+    const server=await device.gatt.connect();hex.server=server;
+    const svc=await server.getPrimaryService(UUID.data);
+    const calc=await svc.getCharacteristic(UUID.calc);await calc.startNotifications();calc.addEventListener('characteristicvaluechanged',onCalc);
+    try{const raw=await svc.getCharacteristic(UUID.raw);await raw.startNotifications();raw.addEventListener('characteristicvaluechanged',onRaw)}catch{}
+    try{const st=await svc.getCharacteristic(UUID.state);await st.startNotifications();st.addEventListener('characteristicvaluechanged',e=>{recordPacket('ABC0',e.target.value);if(e.target.value.byteLength)applyState(STATES[e.target.value.getUint8(0)])})}catch{}
+    try{const cmd=await svc.getCharacteristic(UUID.cmd);await cmd.startNotifications();hex.cmdQueue=makeQueue(cmd)}catch{hex.cmdQueue=null}
+    await Promise.all([readBattery(server,'st-bat'),readDeviceInfo(server)]);
+    hex.connected=true;hex.calibrated=false;hex.firstCalcAt=0;
+    setConn((device.name||'Hex')+' conectado','on');
+    if(hex.cmdQueue){const info=await requestState();if(!(await applyState(info)))startStatePolling()}
+    else{$('st-cal').textContent='No verificable (sin canal de comandos)';beginRecording('hex')}
+    return true;
+  }catch(err){
+    setConn('Hex desconectado');
+    if(err.name!=='NotFoundError')toast('No se pudo conectar el Hex: '+err.message,'error');
+    return false;
+  }
+}
+async function requestState(){if(!hex.cmdQueue)return null;try{const v=await hex.cmdQueue.request(CMD.STATE);return v&&v.byteLength>=2?STATES[v.getUint8(1)]||null:null}catch{return null}}
+const startOpcode=()=>rec.type==='interval'?CMD.START_INTERVAL:CMD.START_ENDURANCE;
+function startStatePolling(){
+  clearInterval(hex.statePoll);
+  hex.statePoll=setInterval(async()=>{const info=await requestState();if(!info)return;if(await applyState(info))return;
+    if(info.id==='IDLE'||info.id==='COMPLETE'){try{await hex.cmdQueue.send(startOpcode())}catch{}}},1000);
+}
+/* Gate como la app oficial: no se muestran datos hasta estado ACTIVE + calibración leída. */
+async function applyState(info){
+  if(!info)return false;hex.state=info;$('st-state').textContent=info.label;
+  if(!info.active){setRecUi('cal',info.label);$('st-cal').textContent='En curso';return false}
+  clearInterval(hex.statePoll);hex.statePoll=null;
+  if(!hex.calibrated){hex.calibrated=true;await fetchCalibration()}
+  if(rec.state==='idle'||rec.state==='armed')beginRecording('hex');
+  return true;
+}
+function parseCal(v){if(!v||v.byteLength<20)return null;const u=o=>v.getUint16(o,true);return{code:u(0),dark:[u(2),u(4),u(6),u(8)],power:[u(10),u(12),u(14),u(16)],register:u(18)}}
+async function fetchCalibration(){
+  if(!hex.cmdQueue){$('st-cal').textContent='No verificable';return}
+  try{const a=await hex.cmdQueue.request(CMD.CAL_A),b=await hex.cmdQueue.request(CMD.CAL_B);hex.calibration={slotA:parseCal(a),slotB:parseCal(b)};
+    $('st-cal').textContent=hex.calibration.slotA&&hex.calibration.slotB?'Verificada para esta colocación':'Incompleta'}
+  catch{$('st-cal').textContent='No disponible'}
+}
+function onCalc(e){
+  const dv=e.target.value;recordPacket('DEEF',dv);if(dv.byteLength<16)return;
+  const hhb=dv.getFloat32(0,true),hbo2=dv.getFloat32(4,true),s=dv.getFloat32(8,true),zone=dv.getFloat32(12,true);
+  if(!fin(s)||s<0||s>1.05)return;
+  const thb=hhb+hbo2;if(thb>0&&Math.abs(hbo2/thb-s)>0.025)return; // coherencia HbO₂/tHb ≈ SmO₂
+  if(!hex.firstCalcAt)hex.firstCalcAt=Date.now();
+  /* Sin canal de comandos o sin estado tras 20 s con datos: se graba, pero se declara. */
+  if((rec.state==='idle'||rec.state==='armed')&&(!hex.cmdQueue||Date.now()-hex.firstCalcAt>20000)){
+    clearInterval(hex.statePoll);hex.statePoll=null;$('st-cal').textContent='No verificada · datos recibidos';beginRecording('hex');
+  }
+  pushSample({smo2:s*100,hhb,hbo2,zone:zoneIdx(zone)},'hex');
+}
+function onRaw(e){const dv=e.target.value;recordPacket('BEEF',dv);if(dv.byteLength<16||rec.state!=='recording'||rec.source!=='hex')return;const a=[];for(let i=0;i<8;i++)a.push(dv.getUint16(i*2,true));if(rec.raw.length<200000)rec.raw.push([+rec.elapsed.toFixed(2),...a])}
+async function readBattery(server,target){
+  try{const svc=await server.getPrimaryService('battery_service'),ch=await svc.getCharacteristic('battery_level');const show=v=>$(target).textContent=v.getUint8(0)+' %';show(await ch.readValue());
+    try{await ch.startNotifications();ch.addEventListener('characteristicvaluechanged',e=>show(e.target.value))}catch{}}
+  catch{$(target).textContent='No disponible'}
+}
+async function readDeviceInfo(server){
+  try{const svc=await server.getPrimaryService('device_information');
+    const read=async id=>{try{return new TextDecoder().decode((await (await svc.getCharacteristic(id)).readValue()).buffer).replace(/\0/g,'').trim()}catch{return''}};
+    const [man,model,serial,hw,fw]=await Promise.all(['manufacturer_name_string','model_number_string','serial_number_string','hardware_revision_string','firmware_revision_string'].map(read));
+    hex.info=[man,model,serial&&'S/N '+serial,hw&&'HW '+hw,fw&&'FW '+fw].filter(Boolean).join(' · ');
+    $('dev-detail').textContent=hex.info||'Información del dispositivo no disponible';
+  }catch{}
+}
+function onHexDisconnected(){
+  const wasRecording=rec.state==='recording'&&rec.source==='hex';
+  hex.connected=false;hex.calibrated=false;hex.cmdQueue=null;hex.state=null;hex.firstCalcAt=0;clearInterval(hex.statePoll);hex.statePoll=null;
+  Object.values(hex.packetTimes).forEach(a=>a.length=0);
+  setConn('Hex desconectado');$('st-state').textContent='—';$('st-cal').textContent='Pendiente';$('st-bat').textContent='—';
+  if(wasRecording){rec.state='paused';updateButtons();setRecUi('paused','Hex desconectado: sesión en pausa. Reconecta o finaliza.');toast('Se perdió la conexión con el Hex. La sesión quedó en pausa.','error')}
+}
+async function connectHr(){
+  if(hex.hrDevice?.gatt?.connected){hex.hrDevice.gatt.disconnect();return}
+  if(!navigator.bluetooth){toast('Bluetooth web no disponible: usa Chrome o Edge en computador o Android (HTTPS).','error');return}
+  try{
+    const device=await navigator.bluetooth.requestDevice({filters:[{services:['heart_rate']}],optionalServices:['battery_service']});
+    hex.hrDevice=device;device.addEventListener('gattserverdisconnected',onHrDisconnected);
+    const server=await device.gatt.connect(),svc=await server.getPrimaryService('heart_rate'),ch=await svc.getCharacteristic('heart_rate_measurement');
+    await ch.startNotifications();
+    ch.addEventListener('characteristicvaluechanged',e=>{const dv=e.target.value;if(dv.byteLength<2)return;const flags=dv.getUint8(0);pushHr((flags&1)?dv.getUint16(1,true):dv.getUint8(1),'band')});
+    hex.hrStatus=(device.name||'Banda')+' conectada';readBattery(server,'st-hrbat');
+    $('hr-name').textContent=device.name||'Banda conectada';$('set-hr').textContent='Desconectar banda';$('btn-hr').textContent='Desconectar banda';renderHr();
+  }catch(err){if(err.name!=='NotFoundError')toast('No se pudo conectar la banda: '+err.message,'error')}
+}
+function onHrDisconnected(){hex.hrDevice=null;hex.hr=null;hex.hrStatus='Banda desconectada';$('hr-name').textContent='No conectada';$('set-hr').textContent='Conectar banda';$('btn-hr').textContent='Conectar banda FC';$('st-hrbat').textContent='—';renderHr()}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   GRABADOR DE SESIÓN
+   Un reloj virtual (rec.elapsed) avanza con el tiempo real × velocidad; en el modo
+   demo la velocidad puede ser 5–20× para recorrer una prueba en pocos minutos.
+   ════════════════════════════════════════════════════════════════════════════ */
+const rec={state:'idle',source:null,startedAt:null,elapsed:0,lastTick:0,speed:1,calc:[],hr:[],raw:[],zoneTime:[0,0,0,0,0,0],last:null,lastAt:0,activity:'cycling',type:'endurance',protocol:null,stopped:false};
+function currentIntensity(){const p=rec.protocol;if(!p)return null;const i=Math.floor(rec.elapsed/(p.stageMin*60));return{stage:i+1,value:p.start+p.step*i,left:p.stageMin*60-(rec.elapsed%(p.stageMin*60)),frac:(rec.elapsed%(p.stageMin*60))/(p.stageMin*60)}}
+function protoUnit(p){return p&&p.mode==='run'?'km/h':'W'}
+function beginRecording(source){
+  if(rec.state==='recording')return;
+  rec.state='recording';rec.source=source;rec.startedAt=new Date();rec.elapsed=0;rec.lastTick=performance.now();
+  rec.speed=source==='demo'?Number(db.settings.demoSpeed)||1:1;
+  rec.calc=[];rec.hr=[];rec.raw=[];rec.zoneTime=[0,0,0,0,0,0];rec.last=null;stageAnnounced=0;
+  rec.activity=$('activity').value;rec.type=$('wtype').value;
+  rec.protocol=rec.type==='incremental'?{...readProtocol()}:null;
+  if(source==='demo')demo.reset();
+  setRecUi('rec',(source==='demo'?'Demo grabando':'Grabando')+(rec.protocol?' · prueba incremental':' · '+WTYPE[rec.type]));
+  $('v-speed').textContent=rec.speed>1?'Simulación a '+rec.speed+'×':'';
+  $('thr-msg').textContent=rec.protocol?'Prueba en curso. Sube la intensidad al cambiar de etapa.':$('thr-msg').textContent;
+  updateButtons();renderLive();
+}
+function pushSample(s,source,tOverride){
+  rec.last={...s,at:Date.now()};
+  if(rec.state==='recording'&&rec.source===source){
+    const ci=currentIntensity(),t=tOverride??rec.elapsed;
+    rec.calc.push({t:+t.toFixed(2),smo2:+s.smo2.toFixed(2),hbo2:fin(s.hbo2)?+s.hbo2.toFixed(2):null,hhb:fin(s.hhb)?+s.hhb.toFixed(2):null,zone:s.zone,int:ci?ci.value:null});
+  }
+}
+function pushHr(bpm,source,tOverride){
+  bpm=Math.round(bpm);if(!fin(bpm)||bpm<25||bpm>240)return;
+  hex.hr=bpm;hex.hrAt=Date.now();
+  if(rec.state==='recording'&&(source==='band'||rec.source===source))rec.hr.push({t:+(tOverride??rec.elapsed).toFixed(2),bpm});
+  renderHr();
+}
+function togglePause(){
+  if(rec.state==='recording'){rec.state='paused';setRecUi('paused','En pausa · el sensor sigue calibrado')}
+  else if(rec.state==='paused'){if(rec.source==='hex'&&!hex.connected){toast('Reconecta el Hex para reanudar.','error');return}rec.state='recording';rec.lastTick=performance.now();setRecUi('rec','Grabando')}
+  updateButtons();
+}
+async function finishRecording(){
+  if(rec.state!=='recording'&&rec.state!=='paused')return;
+  if(rec.calc.length<5){if(!confirm('La sesión tiene muy pocas muestras. ¿Descartarla?'))return;resetRecorder();return}
+  rec.state='stopped';
+  if(rec.source==='hex'&&hex.cmdQueue){try{await hex.cmdQueue.send(CMD.STOP)}catch{}}
+  setRecUi('','Sesión detenida');updateButtons();
+  openFinishDialog();
+}
+function resetRecorder(){
+  if(rec.source==='hex')hex.calibrated=false;
+  if(rec.source==='demo')setConn('Hex desconectado');
+  rec.state='idle';rec.source=null;rec.protocol=null;rec.calc=[];rec.hr=[];rec.raw=[];rec.last=null;rec.elapsed=0;
+  $('thr-msg').textContent='Configura el protocolo y elige Hex o demo.';
+  setRecUi('',hex.connected?'Hex conectado · esperando estado activo':'Sin sesión');updateButtons();renderLive();renderThresholdLive();
+}
+
+/* ── Remuestreo a 1 Hz para guardar ─────────────────────────────────────────── */
+function resample(calc,hr){
+  const bins=new Map();
+  calc.forEach(p=>{const k=Math.floor(p.t);let b=bins.get(k);if(!b){b={n:0,smo2:0,hbo2:0,hhb:0,nh:0,zone:0,int:null};bins.set(k,b)}b.n++;b.smo2+=p.smo2;if(fin(p.hbo2)&&fin(p.hhb)){b.hbo2+=p.hbo2;b.hhb+=p.hhb;b.nh++}b.zone=p.zone;if(p.int!=null)b.int=p.int});
+  const hbins=new Map();hr.forEach(p=>{const k=Math.floor(p.t);const b=hbins.get(k)||{n:0,s:0};b.n++;b.s+=p.bpm;hbins.set(k,b)});
+  const out=[...bins.entries()].sort((a,b)=>a[0]-b[0]).map(([t,b])=>({t,smo2:+(b.smo2/b.n).toFixed(2),hbo2:b.nh?+(b.hbo2/b.nh).toFixed(2):null,hhb:b.nh?+(b.hhb/b.nh).toFixed(2):null,zone:b.zone,int:b.int}));
+  const hout=[...hbins.entries()].sort((a,b)=>a[0]-b[0]).map(([t,b])=>({t,bpm:Math.round(b.s/b.n)}));
+  return{calc:out,hr:hout};
+}
+function computeStats(calc,hr,duration){
+  const s=calc.map(p=>p.smo2).filter(fin),h=hr.map(p=>p.bpm).filter(fin);
+  const base=calc.filter(p=>p.t<=Math.min(60,(duration||0)*0.1+30)).map(p=>p.smo2);
+  const baseline=base.length?mean(base):s[0];
+  const zt=[0,0,0,0,0,0];calc.forEach(p=>zt[zoneIdx(p.zone)]++);
+  return{smo2:{avg:mean(s),min:s.length?Math.min(...s):NaN,max:s.length?Math.max(...s):NaN,baseline,desat:fin(baseline)&&s.length?baseline-Math.min(...s):NaN,end:s.at(-1)},
+    hr:{avg:mean(h),min:h.length?Math.min(...h):NaN,max:h.length?Math.max(...h):NaN},zoneSec:zt};
+}
+function buildSession(rpe,notes){
+  const {calc,hr}=resample(rec.calc,rec.hr);
+  const duration=rec.elapsed;
+  const u=activeUser();
+  const session={id:uid(),v:1,userId:u?.id||null,userName:u?.name||null,date:rec.startedAt.toISOString(),duration:+duration.toFixed(1),
+    activity:rec.activity,type:rec.type,source:rec.source,device:rec.source==='hex'?{name:hex.device?.name||'Humon Hex',info:hex.info,calibration:hex.calibration}:null,
+    protocol:rec.protocol,calc,hr,rpe,notes,stats:computeStats(calc,hr,duration),threshold:null};
+  if(session.type==='incremental'&&session.protocol)session.threshold=analyzeThreshold(session);
+  return session;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   UMBRAL — ajuste bilineal de dos segmentos
+   Para cada punto de corte k se ajusta una recta a cada lado (mínimos cuadrados) y
+   se elige el corte que minimiza el error total. La intersección de ambas rectas es
+   el tiempo de umbral, que se asigna a la etapa en curso. Criterios de aceptación:
+   R² del modelo bilineal ≥ 0,95 para SmO₂ y pendiente posterior más negativa.
+   Respaldo: HbO₂ (R² ≥ 0,76, cae más) y HHb (R² ≥ 0,26, sube más) concordantes.
+   Si nada pasa, la prueba es NO CONCLUYENTE y no se informa un número.
+   ════════════════════════════════════════════════════════════════════════════ */
+function bilinear(xs,ys,minSeg){
+  const n=xs.length;if(n<2*minSeg+2)return null;
+  const P=[[0,0,0,0,0]];for(let i=0;i<n;i++){const p=P[i],x=xs[i],y=ys[i];P.push([p[0]+x,p[1]+y,p[2]+x*x,p[3]+x*y,p[4]+y*y])}
+  const seg=(a,b)=>{const m=b-a,S=P[b].map((v,i)=>v-P[a][i]),[sx,sy,sxx,sxy,syy]=S,den=m*sxx-sx*sx;if(den<=1e-9)return null;
+    const slope=(m*sxy-sx*sy)/den,c=(sy-slope*sx)/m;const sse=syy-2*slope*sxy-2*c*sy+slope*slope*sxx+2*slope*c*sx+m*c*c;return{m:slope,c,sse:Math.max(0,sse)}};
+  let best=null;
+  for(let k=minSeg;k<=n-minSeg;k++){const A=seg(0,k),B=seg(k,n);if(!A||!B)continue;const e=A.sse+B.sse;if(!best||e<best.e)best={k,A,B,e}}
+  if(!best)return null;
+  const all=seg(0,n),sst=P[n][4]-P[n][1]*P[n][1]/n;const r2=sst>0?1-best.e/sst:0,r2single=sst>0&&all?1-all.sse/sst:0;
+  let x=best.A.m!==best.B.m?(best.B.c-best.A.c)/(best.A.m-best.B.m):xs[best.k];
+  if(!fin(x)||x<xs[0]||x>xs[n-1])x=xs[best.k];
+  return{x,r2,r2single,mA:best.A.m,cA:best.A.c,mB:best.B.m,cB:best.B.c,k:best.k};
+}
+function analyzeThreshold(s){
+  const p=s.protocol,stageSec=p.stageMin*60,unit=protoUnit(p),calc=s.calc.filter(c=>fin(c.smo2));
+  const completed=Math.floor((s.duration||0)/stageSec);
+  const base={method:null,unit,completed,protocol:p};
+  if(completed<(p.minStages||3))return{...base,status:'failed',reason:`Solo ${completed} etapa(s) completa(s); se requieren al menos ${p.minStages||3}.`};
+  const xs=calc.map(c=>c.t),minSeg=Math.max(20,Math.round(stageSec/2));
+  const fS=bilinear(xs,calc.map(c=>c.smo2),minSeg);
+  const hb=calc.filter(c=>fin(c.hbo2)&&fin(c.hhb));
+  const fO=hb.length>2*minSeg?bilinear(hb.map(c=>c.t),hb.map(c=>c.hbo2),minSeg):null;
+  const fH=hb.length>2*minSeg?bilinear(hb.map(c=>c.t),hb.map(c=>c.hhb),minSeg):null;
+  const passS=!!fS&&fS.r2>=0.95&&fS.mB<fS.mA&&fS.mB<0;
+  const passO=!!fO&&fO.r2>=0.76&&fO.mB<fO.mA;
+  const passH=!!fH&&fH.r2>=0.26&&fH.mB>fH.mA;
+  const r2={smo2:fS?.r2??null,hbo2:fO?.r2??null,hhb:fH?.r2??null};
+  let t=null,method=null;
+  if(passS){t=fS.x;method='SmO₂'}
+  else if(passO&&passH&&Math.abs(fO.x-fH.x)<=stageSec){t=(fO.x+fH.x)/2;method='HbO₂ + HHb'}
+  if(t==null){
+    const why=!fS?'No hay suficientes muestras para el ajuste.':!(fS.mB<fS.mA)?'La SmO₂ no muestra un quiebre descendente.':`El ajuste de SmO₂ no alcanza la calidad mínima (R² ${fS.r2.toFixed(2)} < 0,95).`;
+    return{...base,status:'failed',reason:why,r2,fit:fS};
+  }
+  const stage=Math.floor(t/stageSec),intensity=p.start+p.step*stage;
+  const hrNear=s.hr.filter(h=>Math.abs(h.t-t)<=15).map(h=>h.bpm);
+  const smoNear=calc.filter(c=>Math.abs(c.t-t)<=10).map(c=>c.smo2);
+  const w=userById(s.userId)?.weight;
+  return{...base,status:'ok',method,timeSec:+t.toFixed(1),stage:stage+1,intensity,perKg:unit==='W'&&w?intensity/w:null,hr:hrNear.length?Math.round(mean(hrNear)):null,smo2:smoNear.length?mean(smoNear):null,r2,fit:fS};
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   MODO DEMOSTRACIÓN — modelo simple, rotulado siempre como simulado
+   SmO₂ responde a la intensidad con una cinética de primer orden y un quiebre
+   por encima de un umbral de referencia; FC con su propia cinética.
+   ════════════════════════════════════════════════════════════════════════════ */
+const demo={smo2:74,hr:68,phase:0,acc:0,lt:210,reset(){const w=activeUser()?.weight||70;this.lt=Math.round(w*3)/1;this.smo2=74+gauss()*0.5;this.hr=66+gauss()*2;this.acc=0;this.hrAcc=0}};
+function gauss(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function demoIntensity(t){
+  const lt=demo.lt;
+  if(rec.protocol){const ci=currentIntensity();return rec.protocol.mode==='run'?ci.value*lt/13:ci.value}
+  if(rec.type==='interval'){if(t<300)return lt*(0.35+0.25*t/300);const c=(t-300)%120;return c<60?lt*1.35:lt*0.45}
+  if(t<300)return lt*(0.35+0.4*t/300);const c=(t-300)%360;return c<240?lt*1.02:lt*0.6;
+}
+function demoStep(dt){
+  const t=rec.elapsed,P=demoIntensity(t),lt=demo.lt;
+  const target=P<=lt?74-0.045*P:74-0.045*lt-0.16*(P-lt);
+  demo.smo2+=(target-demo.smo2)*(1-Math.exp(-dt/22));
+  const hrT=Math.min(198,62+0.5*P*(210/lt)+(rec.protocol?0:0.02*t/60));
+  demo.hr+=(hrT-demo.hr)*(1-Math.exp(-dt/28));
+  demo.acc+=dt;
+  while(demo.acc>=0.5){demo.acc-=0.5;
+    const s=clamp(demo.smo2+gauss()*0.45,8,92),thb=96+0.025*P+gauss()*0.6,hbo2=thb*s/100,hhb=thb-hbo2;
+    const d=74-s,zone=d<4?2:d<12?3:d<20?4:5;
+    pushSample({smo2:s,hbo2,hhb,zone},'demo',Math.max(0,rec.elapsed-demo.acc));
+  }
+  demo.hrAcc=(demo.hrAcc||0)+dt;while(demo.hrAcc>=1){demo.hrAcc-=1;pushHr(demo.hr+gauss()*1.2,'demo',Math.max(0,rec.elapsed-demo.hrAcc))}
+}
+function startDemo(){
+  if(hex.connected){toast('Desconecta el Hex para usar el modo demo.','error');return}
+  if(rec.state!=='idle'){toast('Ya hay una sesión en curso.','error');return}
+  setConn('Demo activo','demo');
+  setRecUi('cal','Demo · calibrando (simulado)…');
+  rec.state='armed';updateButtons();
+  setTimeout(()=>{if(rec.state==='armed')beginRecording('demo')},1500);
+}
+
+/* ── Bucle principal ───────────────────────────────────────────────────────── */
+let lastRender=-1e9,stageAnnounced=0;
+function loop(){
+  const now=performance.now();
+  if(rec.state==='recording'){
+    const dt=(now-rec.lastTick)/1000*rec.speed;rec.lastTick=now;rec.elapsed+=dt;
+    if(rec.source==='demo')demoStep(dt);
+    if(rec.last&&Date.now()-rec.last.at<5000)rec.zoneTime[zoneIdx(rec.last.zone)]+=dt;
+    const ci=currentIntensity();
+    if(rec.source==='demo'&&rec.protocol&&demoIntensity(rec.elapsed)>demo.lt*1.4&&rec.state==='recording'){toast('Demo: el deportista simulado llegó al agotamiento.');finishRecording();return}
+    if(ci&&ci.stage!==stageAnnounced){stageAnnounced=ci.stage;if(ci.stage>1)toast(`Etapa ${ci.stage}: sube a ${r1(ci.value)} ${protoUnit(rec.protocol)}`,'ok')}
+  }else rec.lastTick=now;
+  if(now-lastRender>240){lastRender=now;renderLive();renderThresholdLive();renderRates()}
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   GRÁFICOS SVG
+   ════════════════════════════════════════════════════════════════════════════ */
+function smoothPath(pts){
+  if(!pts.length)return'';let d=`M${pts[0][0].toFixed(1)},${pts[0][1].toFixed(1)}`;
+  for(let i=0;i<pts.length-1;i++){const p0=pts[Math.max(0,i-1)],p1=pts[i],p2=pts[i+1],p3=pts[Math.min(pts.length-1,i+2)];
+    d+=` C${(p1[0]+(p2[0]-p0[0])/6).toFixed(1)},${(p1[1]+(p2[1]-p0[1])/6).toFixed(1)} ${(p2[0]-(p3[0]-p1[0])/6).toFixed(1)},${(p2[1]-(p3[1]-p1[1])/6).toFixed(1)} ${p2[0].toFixed(1)},${p2[1].toFixed(1)}`}
+  return d;
+}
+function cw(id,def){const e=$(id);const w=e?e.clientWidth:0;return w>200?w:def}
+function thin(arr,max){if(arr.length<=max)return arr;const step=arr.length/max,out=[];for(let i=0;i<max;i++)out.push(arr[Math.floor(i*step)]);out.push(arr.at(-1));return out}
+function niceDomain(vals,pad,minSpan){const v=vals.filter(fin);if(!v.length)return null;let a=Math.min(...v),b=Math.max(...v);const span=Math.max(minSpan,b-a);const mid=(a+b)/2;a=mid-span/2-pad;b=mid+span/2+pad;return[a,b]}
+/* chart({w,h,t:[t0,t1],series:[{data:[[t,v]],dom:[a,b],color,width,fill,dash}],zones:[[t,z]],marks:[{t,color,label}],grid,light,labels}) */
+function chart(o){
+  const W=Math.round(o.w||720),H=o.h||200,pl=o.labels?34:4,pr=o.labelsR?34:4,pt=8,pb=8,iw=W-pl-pr,ih=H-pt-pb;
+  const [t0,t1]=o.t;const tx=t=>pl+((t-t0)/Math.max(1e-6,t1-t0))*iw;
+  const grid=o.light?'#e3e8ef':'#253050',txt=o.light?'#6b7689':'#7f89a3';
+  let g='';
+  for(let i=0;i<=4;i++){const y=pt+ih*i/4;g+=`<line x1="${pl}" x2="${W-pr}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="${grid}" stroke-dasharray="2 6"/>`}
+  if(o.zones&&o.zones.length){const zs=o.zones;let i=0;while(i<zs.length){const z=zoneIdx(zs[i][1]);let j=i;while(j+1<zs.length&&zoneIdx(zs[j+1][1])===z)j++;
+      const x=tx(zs[i][0]),x2=j+1<zs.length?tx(zs[j+1][0]):tx(zs[j][0]);if(z>=2&&x2>x)g+=`<rect x="${x.toFixed(1)}" y="${pt}" width="${(x2-x+.5).toFixed(1)}" height="${ih}" fill="${ZONES[z].color}" opacity="${o.light?.13:.12}"/>`;i=j+1}}
+  (o.series||[]).forEach((s,si)=>{
+    if(!s.data.length||!s.dom)return;const [a,b]=s.dom,ty=v=>pt+ih-((v-a)/Math.max(1e-6,b-a))*ih;
+    const pts=s.data.filter(d=>fin(d[1])).map(d=>[tx(d[0]),clamp(ty(d[1]),pt,pt+ih)]);if(!pts.length)return;
+    const path=s.straight?'M'+pts.map(p=>p[0].toFixed(1)+','+p[1].toFixed(1)).join(' L'):smoothPath(pts);
+    if(s.fill&&pts.length>1){const id='gf'+Math.random().toString(36).slice(2,8);g+=`<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop stop-color="${s.color}" stop-opacity=".35"/><stop offset="1" stop-color="${s.color}" stop-opacity="0"/></linearGradient></defs><path d="${path} L${pts.at(-1)[0].toFixed(1)},${pt+ih} L${pts[0][0].toFixed(1)},${pt+ih} Z" fill="url(#${id})"/>`}
+    g+=`<path d="${path}" fill="none" stroke="${s.color}" stroke-width="${s.width||2.5}" stroke-linecap="round" stroke-linejoin="round"${s.dash?` stroke-dasharray="${s.dash}"`:''}/>`;
+    if(si===0&&o.labels)for(let i=0;i<=4;i++){const v=b-(b-a)*i/4;g+=`<text x="${pl-5}" y="${(pt+ih*i/4+3).toFixed(1)}" text-anchor="end" font-size="9" fill="${txt}">${Math.round(v)}</text>`}
+    if(si===1&&o.labelsR)for(let i=0;i<=4;i++){const v=b-(b-a)*i/4;g+=`<text x="${W-pr+5}" y="${(pt+ih*i/4+3).toFixed(1)}" font-size="9" fill="${txt}">${Math.round(v)}</text>`}
+  });
+  (o.marks||[]).forEach(m=>{const x=tx(m.t);g+=`<line x1="${x.toFixed(1)}" x2="${x.toFixed(1)}" y1="${pt}" y2="${pt+ih}" stroke="${m.color}" stroke-width="${m.width||1.5}" stroke-dasharray="${m.dash||'4 4'}"/>`;if(m.label)g+=`<text x="${(x+4).toFixed(1)}" y="${pt+11}" font-size="10" font-weight="700" fill="${m.color}">${esc(m.label)}</text>`});
+  return`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(o.aria||'Gráfico')}">${g}</svg>`;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   RENDER — EN VIVO
+   ════════════════════════════════════════════════════════════════════════════ */
+function setConn(text,mode=''){const c=$('conn-chip');c.className='chip'+(mode?' '+mode:'');c.querySelector('span').textContent=text;
+  const on=mode==='on';$('btn-connect').textContent=on?'Nueva sesión Hex':'Conectar Hex';$('set-connect').textContent=on?'Desconectar':'Conectar Hex';$('dev-name').textContent=on?(hex.device?.name||'Hex conectado'):'No conectado';if(!on&&!hex.info)$('dev-detail').textContent='Recibe SmO₂, HbO₂, HHb, zona y estado de sesión.'}
+function setRecUi(kind,text){$('rec-dot').className='dot'+(kind?' '+kind:'');$('rec-text').textContent=text;
+  const sub={rec:'Sesión en curso.',cal:'Preparando el sensor…',paused:'Grabación en pausa.'}[kind];$('live-sub').textContent=sub||'Conecta el Humon Hex o prueba el modo demostración. No hace falta instalar nada.'}
+function updateButtons(){
+  const active=rec.state==='recording'||rec.state==='paused';
+  $('btn-pause').disabled=!active;$('btn-pause').textContent=rec.state==='paused'?'Reanudar':'Pausar';
+  $('btn-finish').disabled=!active;$('btn-connect').disabled=rec.state!=='idle'&&!(rec.source==='hex'&&rec.state==='paused');$('btn-demo').disabled=rec.state!=='idle'||hex.connected;
+  $('activity').disabled=$('wtype').disabled=rec.state!=='idle';
+  const thrBusy=rec.state!=='idle';$('thr-start-hex').disabled=thrBusy;$('thr-start-demo').disabled=thrBusy||hex.connected;$('thr-stop').disabled=!(active&&rec.protocol);
+  $$('#threshold input,#threshold select').forEach(i=>i.disabled=thrBusy);
+}
+function renderHr(){
+  const fresh=hex.hr!=null&&Date.now()-(hex.hrAt||0)<6000;
+  $('v-hr').innerHTML=(fresh?hex.hr:'—')+'<small>lpm</small>';
+  $('hr-src').textContent=fresh?(rec.source==='demo'&&!hex.hrDevice?'FC simulada (demo)':'Banda · '+(hex.hrDevice?.name||'BLE')):'Sin banda de FC. El Hex no mide FC.';
+  $('st-hr').textContent=fresh?(hex.hrDevice?.name||'Demo')+' · '+hex.hr+' lpm':hex.hrStatus;
+}
+function renderLive(){
+  const u=activeUser();$('rec-user').textContent=u?u.name:'Sin deportista';$('no-user-banner').hidden=!!u;
+  const last=rec.last&&Date.now()-rec.last.at<6000?rec.last:null;
+  const z=last?zoneIdx(last.zone):null,zi=ZONES[z??0];
+  $('v-smo2').textContent=last?Math.round(last.smo2):'—';
+  const ring=$('ring');ring.style.setProperty('--p',last?last.smo2:0);ring.style.setProperty('--c',last?zi.color:'#5d6680');
+  $('zone-name').textContent=last?zi.name:(rec.state==='armed'||$('rec-dot').classList.contains('cal')?'Calibrando…':'Esperando datos');
+  $('zone-desc').textContent=last?zi.desc:'La lectura aparece al recibir el primer paquete del sensor.';
+  $('v-hbo2').textContent=last&&fin(last.hbo2)?r1(last.hbo2):'—';$('v-hhb').textContent=last&&fin(last.hhb)?r1(last.hhb):'—';$('v-thb').textContent=last&&fin(last.hbo2)?r1(last.hbo2+last.hhb):'—';
+  $('v-zone').innerHTML=(last?z:'—')+'<small>/ 5</small>';$('zone-label').textContent=last?zi.short:'Sin lectura';$('zone-label').style.color=last?zi.color:'';
+  $('zone-marker').style.left=last&&z>=2?`calc(${(z-2)*25+12.5}% - 2px)`:'-2px';
+  $$('#zone-list li').forEach(li=>li.classList.toggle('active',last&&Number(li.dataset.z)===z));
+  $('tip').textContent=last?zi.tip:'Conecta el sensor y haz un calentamiento progresivo de 5 a 10 minutos.';
+  $('v-time').textContent=fmtTime(rec.elapsed);$('axis-now').textContent=fmtTime(rec.elapsed);
+  const ci=currentIntensity();$('v-intensity').textContent=ci?`Etapa ${ci.stage} · ${r1(ci.value)} ${protoUnit(rec.protocol)} · ${fmtTime(ci.left)} restante`:(rec.state==='idle'?'—':WTYPE[rec.type]+' · '+ACTIVITY[rec.activity]);
+  renderHr();
+  // gráficos (ventana 5 min)
+  const tEnd=Math.max(rec.elapsed,1),t0=Math.max(0,tEnd-300);
+  const cs=thin(rec.calc.filter(p=>p.t>=t0),450),hs=thin(rec.hr.filter(p=>p.t>=t0),300);
+  $('chart-live-empty').hidden=cs.length>1;$('chart-hb-empty').hidden=cs.length>1;
+  const sd=niceDomain(cs.map(p=>p.smo2),2,10),hd=niceDomain(hs.map(p=>p.bpm),5,30);
+  $('chart-live').innerHTML=chart({w:cw('chart-live',720),h:230,t:[t0,Math.max(t0+60,tEnd)],labels:true,labelsR:hs.length>1,aria:'SmO₂ y FC en vivo',zones:cs.map(p=>[p.t,p.zone]),
+    series:[{data:cs.map(p=>[p.t,p.smo2]),dom:sd,color:'#22e984',fill:true,width:3},{data:hs.map(p=>[p.t,p.bpm]),dom:hd,color:'#eef2fa',width:2}]});
+  const hb=cs.filter(p=>fin(p.hbo2));const hdm=niceDomain(hb.flatMap(p=>[p.hbo2,p.hhb,p.hbo2+p.hhb]),3,10);
+  $('chart-hb').innerHTML=chart({w:cw('chart-hb',360),h:150,t:[t0,Math.max(t0+60,tEnd)],labels:true,aria:'Hemoglobina',series:[{data:hb.map(p=>[p.t,p.hbo2]),dom:hdm,color:'#ff5c72',width:2},{data:hb.map(p=>[p.t,p.hhb]),dom:hdm,color:'#6aa7ff',width:2},{data:hb.map(p=>[p.t,p.hbo2+p.hhb]),dom:hdm,color:'#c9a6ff',width:1.5,dash:'4 4'}]});
+  const all=rec.calc.map(p=>p.smo2);
+  $('s-min').textContent=all.length?r0(Math.min(...all))+' %':'—';$('s-avg').textContent=all.length?r0(mean(all))+' %':'—';$('s-max').textContent=all.length?r0(Math.max(...all))+' %':'—';
+  const base=rec.calc.filter(p=>p.t<=60).map(p=>p.smo2);$('s-desat').textContent=all.length&&base.length?r1(mean(base)-Math.min(...all))+' pts':'—';
+  renderZoneDist($('zone-bar'),$('zone-dist'),rec.zoneTime,true);
+}
+function renderZoneDist(bar,dl,zt,asTime){
+  const tot=zt.reduce((a,b)=>a+b,0);
+  bar.innerHTML=tot?[1,2,3,4,5].map(z=>zt[z]?`<i style="width:${(100*zt[z]/tot).toFixed(2)}%;background:${ZONES[z].color}" title="${ZONES[z].name}"></i>`:'').join(''):'';
+  dl.innerHTML=[2,3,4,5].map(z=>`<div style="border-top:3px solid ${ZONES[z].color}"><dt>${ZONES[z].short}</dt><dd>${tot?Math.round(100*zt[z]/tot):0} %${asTime&&zt[z]?` <small style="font-size:10px;color:var(--muted)">${fmtTime(zt[z])}</small>`:''}</dd></div>`).join('');
+}
+
+/* ── Umbral en vivo ────────────────────────────────────────────────────────── */
+function readProtocol(){
+  const p={mode:$('p-mode').value,start:Number($('p-start').value),step:Number($('p-step').value),stageMin:clamp(Number($('p-stage').value)||3,1,10),minStages:clamp(Math.round(Number($('p-min').value)||3),3,10)};
+  if(!fin(p.start)||p.start<0)p.start=0;if(!fin(p.step)||p.step<=0)p.step=p.mode==='run'?1:30;
+  db.settings.protocol=p;saveDb();return p;
+}
+function applyProtocolUi(){const p=db.settings.protocol;$('p-mode').value=p.mode;$('p-start').value=p.start;$('p-step').value=p.step;$('p-stage').value=p.stageMin;$('p-min').value=p.minStages}
+function renderThresholdLive(){
+  const p=rec.protocol;
+  if(!p){if(rec.state==='idle'){$('thr-stage').textContent='Preparado';$('thr-progress').style.width='0';['thr-int','thr-left','thr-smo2','thr-hr','thr-next','thr-total'].forEach(id=>$(id).textContent='—')}
+    if(!$('chart-thr').dataset.static){$('chart-thr').innerHTML='';$('chart-thr-empty').hidden=false}return}
+  const ci=currentIntensity(),u=protoUnit(p);
+  $('thr-stage').textContent='Etapa '+ci.stage;$('thr-progress').style.width=(ci.frac*100).toFixed(1)+'%';
+  $('thr-int').textContent=r1(ci.value)+' '+u;$('thr-left').textContent=fmtTime(ci.left);$('thr-next').textContent=r1(ci.value+p.step)+' '+u;$('thr-total').textContent=fmtTime(rec.elapsed);
+  $('thr-smo2').textContent=rec.last?Math.round(rec.last.smo2)+' %':'—';$('thr-hr').textContent=hex.hr&&Date.now()-(hex.hrAt||0)<6000?hex.hr:'—';
+  const cs=thin(rec.calc,600);$('chart-thr-empty').hidden=cs.length>1;delete $('chart-thr').dataset.static;
+  const stageSec=p.stageMin*60,marks=[];for(let t=stageSec;t<rec.elapsed;t+=stageSec)marks.push({t,color:'#4a5677',dash:'2 5',width:1});
+  $('chart-thr').innerHTML=chart({w:cw('chart-thr',1000),h:240,t:[0,Math.max(stageSec*4,rec.elapsed)],labels:true,aria:'Curva de la prueba incremental',zones:cs.map(c=>[c.t,c.zone]),marks,series:[{data:cs.map(c=>[c.t,c.smo2]),dom:niceDomain(cs.map(c=>c.smo2),3,15),color:'#22e984',width:2.5,fill:true}]});
+}
+function thresholdChart(s,light){
+  const cs=thin(s.calc,700),stageSec=s.protocol.stageMin*60,dom=niceDomain(cs.map(c=>c.smo2),3,15);
+  const marks=[];for(let t=stageSec;t<s.duration;t+=stageSec)marks.push({t,color:light?'#c9d1dd':'#4a5677',dash:'2 5',width:1});
+  const th=s.threshold,series=[{data:cs.map(c=>[c.t,c.smo2]),dom,color:light?'#0d9a5b':'#22e984',width:2.2}];
+  if(th?.fit){const f=th.fit,x0=cs[0]?.t??0,x1=cs.at(-1)?.t??s.duration,xb=th.status==='ok'?th.timeSec:f.x;series.push({data:[[x0,f.mA*x0+f.cA],[xb,f.mA*xb+f.cA]],dom,color:light?'#d18a00':'#ffd166',width:2,straight:true,dash:'6 4'},{data:[[xb,f.mB*xb+f.cB],[x1,f.mB*x1+f.cB]],dom,color:light?'#d18a00':'#ffd166',width:2,straight:true,dash:'6 4'})}
+  if(th?.status==='ok')marks.push({t:th.timeSec,color:light?'#c8102e':'#ee2345',dash:'0',width:2,label:'Umbral · '+r1(th.intensity)+' '+th.unit});
+  return chart({w:light?760:cw('chart-thr',1000),h:light?230:240,t:[0,Math.max(s.duration,stageSec)],labels:true,light,aria:'Ajuste bilineal de la prueba',zones:cs.map(c=>[c.t,c.zone]),marks,series});
+}
+function thresholdHtml(th,compact){
+  if(!th)return'';
+  if(th.status!=='ok')return`<div class="result bad"><h3>Prueba no concluyente</h3><p>${esc(th.reason)}</p><p class="note">No se informa umbral: un número con mal ajuste sería engañoso.</p></div>`;
+  return`<div class="result ok"><h3>Umbral: ${r1(th.intensity)} ${th.unit}${th.perKg?` · ${r1(th.perKg)} W/kg`:''}</h3><p>Etapa ${th.stage} · minuto ${fmtTime(th.timeSec)} · método ${esc(th.method)}</p><p>SmO₂ en el umbral ≈ ${r0(th.smo2)} %${th.hr?` · FC ≈ ${th.hr} lpm`:''}</p>${compact?'':`<p class="note">Calidad del ajuste (R²): SmO₂ ${th.r2.smo2!=null?th.r2.smo2.toFixed(3):'—'} · HbO₂ ${th.r2.hbo2!=null?th.r2.hbo2.toFixed(3):'—'} · HHb ${th.r2.hhb!=null?th.r2.hhb.toFixed(3):'—'}</p>`}</div>`;
+}
+function renderThresholdResult(){
+  const u=activeUser();const s=db.sessions.find(x=>x.threshold&&(!u||x.userId===u.id));
+  $('thr-result').innerHTML=s?thresholdHtml(s.threshold)+`<p class="foot">${esc(new Date(s.date).toLocaleString('es-CL'))} · ${esc(SOURCE[s.source])}</p><div class="actions" style="margin-top:10px"><button class="btn sm" data-report="${s.id}">Ver informe</button></div>`:'<div class="empty"><b>Sin resultado</b><span>Completa una prueba incremental.</span></div>';
+  if(s&&rec.state==='idle'){$('chart-thr').innerHTML=thresholdChart(s,false);$('chart-thr').dataset.static='1';$('chart-thr-empty').hidden=true}
+}
+async function startThreshold(kind){
+  $('wtype').value='incremental';readProtocol();
+  if(kind==='demo'){startDemo();showView('threshold');return}
+  showView('threshold');
+  if(!hex.connected){$('thr-msg').textContent='Selecciona tu Hex en el diálogo del navegador…';const ok=await connectHex();if(!ok){$('thr-msg').textContent='Conecta el Hex para iniciar la prueba.';return}}
+  else if(rec.state==='idle')armHexSession();
+  $('thr-msg').textContent=rec.state==='recording'?'Prueba en curso.':'Esperando a que el Hex termine de calibrar…';
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   FINALIZAR / GUARDAR
+   ════════════════════════════════════════════════════════════════════════════ */
+let rpeValue=null;
+function openFinishDialog(){
+  rpeValue=null;$('finish-notes').value='';$('finish-dlg').returnValue='';$('raw-wrap').hidden=!rec.raw.length;$('raw-dl').checked=false;
+  $('rpe').innerHTML=RPE.map((_,i)=>`<button type="button" data-rpe="${i}">${i}</button>`).join('');$('rpe-label').textContent='Sin evaluar';
+  $$('#rpe button').forEach(b=>b.onclick=()=>{rpeValue=Number(b.dataset.rpe);$$('#rpe button').forEach(x=>x.classList.toggle('is-active',x===b));$('rpe-label').textContent=rpeValue+' · '+RPE[rpeValue]});
+  const all=rec.calc.map(p=>p.smo2);
+  $('finish-summary').textContent=`${fmtTime(rec.elapsed)} · SmO₂ promedio ${r0(mean(all))} % · ${rec.calc.length} muestras${rec.source==='demo'?' · DATOS SIMULADOS':''}${activeUser()?' · '+activeUser().name:' · sin deportista'}`;
+  $('finish-dlg').showModal();
+}
+$('finish-dlg').addEventListener('cancel',e=>e.preventDefault());
+$('finish-dlg').addEventListener('close',()=>{
+  const v=$('finish-dlg').returnValue;
+  if(v==='save'){const s=buildSession(rpeValue,$('finish-notes').value.trim());db.sessions.unshift(s);
+    if(!saveDb()){s.calc=s.calc.filter((_,i)=>i%2===0);if(!saveDb()){db.sessions.shift();toast('No se pudo guardar la sesión.','error');return}}
+    if($('raw-dl').checked)exportRawIfAny(s);resetRecorder();refreshAll();toast('Sesión guardada.','ok');openReport(s.id);
+    if(s.threshold)renderThresholdResult();
+  }else if(v==='discard'){if(confirm('¿Descartar la sesión sin guardar?')){resetRecorder();toast('Sesión descartada.')}else $('finish-dlg').showModal()}
+  else{$('finish-dlg').returnValue='';$('finish-dlg').showModal()}
+});
+function exportRawIfAny(s){if(!rec.raw.length)return;const head='t_s,raw1a,raw2a,raw3a,raw4a,raw1b,raw2b,raw3b,raw4b\n';s.rawExported=true;download(`readhumhex_raw_${slug(s.userName)}_${s.date.slice(0,10)}.csv`,head+rec.raw.map(r=>r.join(',')).join('\n'),'text/csv')}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   DEPORTISTAS
+   ════════════════════════════════════════════════════════════════════════════ */
+function renderUsers(){
+  const list=$('user-list');
+  if(!db.users.length){list.innerHTML='<div class="empty"><b>Aún no hay deportistas</b><span>Crea la primera ficha con el formulario.</span></div>'}
+  else list.innerHTML=db.users.map(u=>{const a=age(u.birth),n=db.sessions.filter(s=>s.userId===u.id).length;return`<div class="user-item ${u.id===db.activeUserId?'active':''}"><span class="avatar">${esc(initials(u.name))}</span><div><b>${esc(u.name)}</b><small>${[a!=null&&a+' años',u.sport,u.weight&&u.weight+' kg',n+' sesión'+(n===1?'':'es')].filter(Boolean).map(esc).join(' · ')}</small></div><div class="actions">${u.id===db.activeUserId?'<span class="pill ok">Activo</span>':`<button class="btn sm primary" data-act="use" data-id="${u.id}">Usar</button>`}<button class="btn sm" data-act="edit" data-id="${u.id}">Editar</button><button class="btn sm danger" data-act="del" data-id="${u.id}" aria-label="Eliminar">✕</button></div></div>`}).join('');
+  const u=activeUser(),chip=$('user-chip');chip.querySelector('span').textContent=u?u.name:'Sin deportista';chip.classList.toggle('on',!!u);
+}
+function fillUserForm(u){const f=$('user-form');f.reset();$('user-form-title').textContent=u?'Editar deportista':'Nuevo deportista';if(!u){f.id.value='';return}
+  ['id','name','birth','sex','weight','height','sport','level','muscle','side','evaluator','notes'].forEach(k=>{if(f[k])f[k].value=u[k]??''})}
+$('user-form').addEventListener('submit',e=>{
+  e.preventDefault();const f=e.target,d=Object.fromEntries(new FormData(f).entries());
+  d.name=d.name.trim();if(!d.name){toast('El nombre es obligatorio.','error');return}
+  d.weight=d.weight?Number(d.weight):null;d.height=d.height?Number(d.height):null;
+  if(d.id){const u=userById(d.id);Object.assign(u,d,{updatedAt:new Date().toISOString()});db.sessions.forEach(s=>{if(s.userId===u.id)s.userName=u.name})}
+  else{d.id=uid();d.createdAt=new Date().toISOString();db.users.push(d);db.activeUserId=d.id}
+  saveDb();fillUserForm(null);refreshAll();toast('Deportista guardado.','ok');
+});
+$('user-cancel').onclick=()=>fillUserForm(null);
+$('user-new').onclick=()=>{fillUserForm(null);$('user-form').name.focus()};
+$('user-list').addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;const u=userById(b.dataset.id);if(!u)return;
+  if(b.dataset.act==='use'){db.activeUserId=u.id;saveDb();refreshAll();toast('Deportista activo: '+u.name,'ok')}
+  if(b.dataset.act==='edit'){fillUserForm(u);$('user-form').scrollIntoView({behavior:'smooth',block:'start'})}
+  if(b.dataset.act==='del'){const n=db.sessions.filter(s=>s.userId===u.id).length;
+    if(!confirm(`¿Eliminar a ${u.name}${n?` y sus ${n} sesión(es)`:''}? No se puede deshacer.`))return;
+    db.users=db.users.filter(x=>x.id!==u.id);db.sessions=db.sessions.filter(s=>s.userId!==u.id);if(db.activeUserId===u.id)db.activeUserId=db.users[0]?.id||null;saveDb();refreshAll()}
+});
+
+/* ════════════════════════════════════════════════════════════════════════════
+   HISTORIAL
+   ════════════════════════════════════════════════════════════════════════════ */
+let selectedSessionId=null,histTab='smo2';
+function visibleSessions(){const u=activeUser();return $('hist-all').checked||!u?db.sessions:db.sessions.filter(s=>s.userId===u.id)}
+function renderHistory(){
+  const list=visibleSessions(),u=activeUser();
+  $('hist-sub').textContent=$('hist-all').checked||!u?'Todas las sesiones guardadas en este navegador.':'Sesiones de '+u.name+'.';
+  if(!list.length){$('sess-list').innerHTML='<div class="empty"><b>Sin sesiones</b><span>Graba o importa una sesión.</span></div>';$('sess-detail').innerHTML='<div class="empty"><b>Nada que mostrar</b><span>Usa el modo demo para ver un ejemplo completo.</span></div>';return}
+  if(!list.some(s=>s.id===selectedSessionId))selectedSessionId=list[0].id;
+  $('sess-list').innerHTML=list.map(s=>{const d=new Date(s.date);return`<button class="sess ${s.id===selectedSessionId?'active':''}" data-sid="${s.id}"><span class="date"><b>${d.getDate()}</b>${d.toLocaleDateString('es-CL',{month:'short'})}</span><span><b style="font-size:13px">${esc(ACTIVITY[s.activity]||'Sesión')} · ${esc(WTYPE[s.type]||'')}</b><small>${fmtTime(s.duration)} · ${esc(s.userName||'Sin asignar')}${s.source!=='hex'?' · '+(s.source==='demo'?'demo':'CSV'):''}</small></span><strong>${r0(s.stats.smo2.avg)}%</strong></button>`}).join('');
+  const s=list.find(x=>x.id===selectedSessionId);renderSessionDetail(s);
+}
+function sessionCharts(s,tab,light){
+  const t=[0,Math.max(1,s.duration)],cs=thin(s.calc,700),hs=thin(s.hr,500);
+  if(tab==='hr')return hs.length>1?chart({w:light?760:cw('sess-detail',900)-40,h:light?190:220,t,labels:true,light,aria:'FC de la sesión',series:[{data:hs.map(p=>[p.t,p.bpm]),dom:niceDomain(hs.map(p=>p.bpm),5,30),color:light?'#b0122f':'#eef2fa',width:2.2,fill:!light}]}):'<div class="empty"><span>Esta sesión no tiene FC.</span></div>';
+  if(tab==='hb'){const hb=cs.filter(p=>fin(p.hbo2));if(hb.length<2)return'<div class="empty"><span>Sin datos de hemoglobina.</span></div>';const dom=niceDomain(hb.flatMap(p=>[p.hbo2,p.hhb,p.hbo2+p.hhb]),3,10);return chart({w:light?760:cw('sess-detail',900)-40,h:light?190:220,t,labels:true,light,aria:'Hemoglobina',series:[{data:hb.map(p=>[p.t,p.hbo2]),dom,color:'#e5484d',width:2},{data:hb.map(p=>[p.t,p.hhb]),dom,color:'#3b82f6',width:2},{data:hb.map(p=>[p.t,p.hbo2+p.hhb]),dom,color:'#8b5cf6',width:1.5,dash:'4 4'}]})}
+  if(tab==='thr'&&s.threshold)return thresholdChart(s,light);
+  return chart({w:light?760:cw('sess-detail',900)-40,h:light?190:220,t,labels:true,labelsR:hs.length>1,light,aria:'SmO₂ de la sesión',zones:cs.map(p=>[p.t,p.zone]),series:[{data:cs.map(p=>[p.t,p.smo2]),dom:niceDomain(cs.map(p=>p.smo2),2,10),color:light?'#0d9a5b':'#22e984',width:2.4,fill:!light},{data:hs.map(p=>[p.t,p.bpm]),dom:niceDomain(hs.map(p=>p.bpm),5,30),color:light?'#b0122f':'#eef2fa',width:1.6}]});
+}
+function renderSessionDetail(s){
+  const st=s.stats,zt=st.zoneSec,tot=zt.reduce((a,b)=>a+b,0)||1;
+  if(histTab==='thr'&&!s.threshold)histTab='smo2';
+  $('sess-detail').innerHTML=`<div class="ph"><div><p class="eyebrow">${esc(new Date(s.date).toLocaleDateString('es-CL',{weekday:'long',day:'numeric',month:'long',year:'numeric'}))}</p><h2 style="font-size:18px;margin-top:4px">${esc(ACTIVITY[s.activity]||'Sesión')} · ${esc(WTYPE[s.type]||'')}</h2><p>${esc(s.userName||'Sin asignar')} · ${fmtTime(s.duration)} · ${esc(SOURCE[s.source]||s.source)}${s.rpe!=null?' · Borg '+s.rpe:''}</p></div><div class="actions"><button class="btn sm primary" data-report="${s.id}">Informe</button><button class="btn sm" data-csv="${s.id}">CSV</button><select class="btn sm" data-assign="${s.id}" aria-label="Asignar a deportista" style="padding:5px 8px"><option value="">Asignar a…</option>${db.users.map(u=>`<option value="${u.id}" ${u.id===s.userId?'selected':''}>${esc(u.name)}</option>`).join('')}</select><button class="btn sm danger" data-delsess="${s.id}">Eliminar</button></div></div>
+  <dl class="stats" style="grid-template-columns:repeat(5,1fr)"><div><dt>SmO₂ prom.</dt><dd>${r0(st.smo2.avg)} %</dd></div><div><dt>Mín. / máx.</dt><dd>${r0(st.smo2.min)} / ${r0(st.smo2.max)}</dd></div><div><dt>Desaturación</dt><dd>${r1(st.smo2.desat)}</dd></div><div><dt>FC prom.</dt><dd>${fin(st.hr.avg)?r0(st.hr.avg)+' lpm':'—'}</dd></div><div><dt>Estable</dt><dd>${Math.round(100*zt[3]/tot)} %</dd></div></dl>
+  ${s.notes?`<div class="tip"><b>Notas:</b> ${esc(s.notes)}</div>`:''}
+  <div class="tabs">${[['smo2','SmO₂ + FC'],['hb','Hemoglobina'],['hr','FC'],...(s.threshold?[['thr','Umbral']]:[])].map(([k,l])=>`<button data-htab="${k}" class="${histTab===k?'is-active':''}">${l}</button>`).join('')}</div>
+  <div class="chart">${sessionCharts(s,histTab,false)}<div class="axis"><span>0:00</span><span>${fmtTime(s.duration)}</span></div></div>
+  <div class="zbar" id="hd-zbar"></div><dl class="stats" id="hd-zones"></dl>
+  ${s.threshold?`<div style="margin-top:12px">${thresholdHtml(s.threshold)}</div>`:''}`;
+  renderZoneDist($('hd-zbar'),$('hd-zones'),zt,true);
+}
+$('sess-list').addEventListener('click',e=>{const b=e.target.closest('[data-sid]');if(b){selectedSessionId=b.dataset.sid;renderHistory()}});
+$('hist-all').onchange=renderHistory;
+document.addEventListener('click',e=>{
+  const r=e.target.closest('[data-report]');if(r){openReport(r.dataset.report);return}
+  const c=e.target.closest('[data-csv]');if(c){exportCsv(db.sessions.find(s=>s.id===c.dataset.csv));return}
+  const t=e.target.closest('[data-htab]');if(t){histTab=t.dataset.htab;renderHistory();return}
+  const d=e.target.closest('[data-delsess]');if(d){if(confirm('¿Eliminar esta sesión? No se puede deshacer.')){db.sessions=db.sessions.filter(s=>s.id!==d.dataset.delsess);saveDb();refreshAll()}return}
+  const g=e.target.closest('[data-go]');if(g){showView(g.dataset.go)}
+});
+document.addEventListener('change',e=>{const a=e.target.closest('[data-assign]');if(!a||!a.value)return;const s=db.sessions.find(x=>x.id===a.dataset.assign),u=userById(a.value);if(s&&u){s.userId=u.id;s.userName=u.name;if(s.threshold&&s.threshold.status==='ok'&&s.threshold.unit==='W')s.threshold.perKg=u.weight?s.threshold.intensity/u.weight:null;saveDb();refreshAll();toast('Sesión asignada a '+u.name,'ok')}});
+
+/* ════════════════════════════════════════════════════════════════════════════
+   PROGRESO
+   ════════════════════════════════════════════════════════════════════════════ */
+function renderProgress(){
+  const u=activeUser(),list=(u?db.sessions.filter(s=>s.userId===u.id):db.sessions).slice();
+  $('prog-sub').textContent=u?`Sesiones de ${u.name}.`:'Todas las sesiones (no hay deportista activo).';
+  $('pg-count').textContent=list.length;$('pg-time').innerHTML=Math.round(list.reduce((a,s)=>a+s.duration,0)/60)+'<small>min</small>';
+  const avg=mean(list.map(s=>s.stats.smo2.avg).filter(fin));$('pg-smo2').innerHTML=fin(avg)?Math.round(avg)+'<small>%</small>':'—';
+  const thr=list.filter(s=>s.threshold?.status==='ok').reverse();const lt=thr.at(-1)?.threshold;
+  $('pg-thr').innerHTML=lt?r1(lt.intensity)+'<small>'+lt.unit+'</small>':'—';$('pg-thr-foot').textContent=lt?(lt.perKg?r1(lt.perKg)+' W/kg · ':'')+new Date(thr.at(-1).date).toLocaleDateString('es-CL'):'';
+  const recent=list.slice(0,12).reverse();
+  $('pg-bars').innerHTML=recent.length?recent.map((s,i)=>`<div style="height:${clamp(s.stats.smo2.avg,4,100)}%" title="${esc(new Date(s.date).toLocaleDateString('es-CL'))} · ${r0(s.stats.smo2.avg)} %"><em>${r0(s.stats.smo2.avg)}</em><span>${i+1}</span></div>`).join(''):'<p class="note" style="margin:auto">Sin sesiones.</p>';
+  $('pg-thr-empty').hidden=thr.length>0;
+  if(thr.length){const pts=thr.map((s,i)=>[i,s.threshold.intensity]);$('pg-thr-chart').innerHTML=chart({w:cw('pg-thr-chart',600),h:180,t:[-.3,Math.max(1,thr.length-1)+.3],labels:true,aria:'Umbral en el tiempo',series:[{data:pts,dom:niceDomain(pts.map(p=>p[1]),10,40),color:'#ee2345',width:2.5,straight:true}]})+`<div class="axis">${thr.map(s=>`<span>${esc(new Date(s.date).toLocaleDateString('es-CL',{day:'2-digit',month:'short'}))}</span>`).join('')}</div>`}else $('pg-thr-chart').innerHTML='';
+  const zt=[0,0,0,0,0,0];list.forEach(s=>s.stats.zoneSec.forEach((v,i)=>zt[i]+=v));renderZoneDist($('pg-zbar'),$('pg-zones'),zt,false);
+  $('pg-table').innerHTML=list.length?`<thead><tr><th>Fecha</th><th>Tipo</th><th class="num">Dur.</th><th class="num">SmO₂</th><th class="num">Mín.</th><th class="num">FC</th><th class="num">Umbral</th></tr></thead><tbody>${list.slice(0,20).map(s=>`<tr><td>${esc(new Date(s.date).toLocaleDateString('es-CL'))}${s.source==='demo'?' <span class="pill warn">demo</span>':''}</td><td>${esc(WTYPE[s.type]||'')}</td><td class="num">${fmtTime(s.duration)}</td><td class="num">${r0(s.stats.smo2.avg)}</td><td class="num">${r0(s.stats.smo2.min)}</td><td class="num">${fin(s.stats.hr.avg)?r0(s.stats.hr.avg):'—'}</td><td class="num">${s.threshold?(s.threshold.status==='ok'?r1(s.threshold.intensity)+' '+s.threshold.unit:'n/c'):'—'}</td></tr>`).join('')}</tbody>`:'<tbody><tr><td class="note">Sin sesiones.</td></tr></tbody>';
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   INFORME
+   ════════════════════════════════════════════════════════════════════════════ */
+let reportSessionId=null;
+function openReport(id){reportSessionId=id;showView('report')}
+function renderReportSelect(){
+  const sel=$('rep-session');
+  sel.innerHTML=db.sessions.length?db.sessions.map(s=>`<option value="${s.id}" ${s.id===reportSessionId?'selected':''}>${esc(new Date(s.date).toLocaleString('es-CL',{dateStyle:'short',timeStyle:'short'}))} · ${esc(s.userName||'Sin asignar')} · ${esc(WTYPE[s.type]||'')}${s.source==='demo'?' (demo)':''}</option>`).join(''):'<option>Sin sesiones</option>';
+  if(!db.sessions.some(s=>s.id===reportSessionId))reportSessionId=db.sessions[0]?.id||null;
+  sel.value=reportSessionId||'';['rep-print','rep-html','rep-csv','rep-json'].forEach(id=>$(id).disabled=!reportSessionId);
+}
+const HEX_LOGO='<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 4l24 14v28L32 60 8 46V18z" fill="#1d2333"/><path d="M20 38c4-10 8-14 12-14s8 6 12 2" fill="none" stroke="#22e984" stroke-width="4" stroke-linecap="round"/><circle cx="32" cy="24" r="4.5" fill="#ee2345"/></svg>';
+function interpret(s){
+  const st=s.stats,zt=st.zoneSec,tot=zt.reduce((a,b)=>a+b,0)||1,pct=z=>Math.round(100*zt[z]/tot),out=[];
+  out.push(`La SmO₂ promedió ${r0(st.smo2.avg)} % (rango ${r0(st.smo2.min)}–${r0(st.smo2.max)} %), con una desaturación máxima de ${r1(st.smo2.desat)} puntos respecto del inicio.`);
+  const dom=[2,3,4,5].sort((a,b)=>zt[b]-zt[a])[0];
+  out.push(`La mayor parte del tiempo transcurrió en la zona «${ZONES[dom].name}» (${pct(dom)} %); ${pct(4)+pct(5)} % del tiempo estuvo próximo al límite o en el límite.`);
+  if(fin(st.hr.avg))out.push(`La FC promedió ${r0(st.hr.avg)} lpm (máx. ${r0(st.hr.max)} lpm).`);
+  if(s.threshold)out.push(s.threshold.status==='ok'?`La prueba incremental identificó un quiebre de oxigenación en ${r1(s.threshold.intensity)} ${s.threshold.unit} (etapa ${s.threshold.stage}).`:'La prueba incremental no permitió identificar un umbral confiable.');
+  return out.join(' ');
+}
+function reportHtml(s){
+  const u=userById(s.userId)||{name:s.userName||'Sin asignar'},st=s.stats,zt=st.zoneSec,tot=zt.reduce((a,b)=>a+b,0)||1,d=new Date(s.date),a=age(u.birth,d);
+  const bmi=u.weight&&u.height?u.weight/((u.height/100)**2):null;
+  const row=(k,v)=>`<div><dt>${k}</dt><dd>${v||'—'}</dd></div>`;
+  const stageTable=s.protocol?(()=>{const sec=s.protocol.stageMin*60,n=Math.ceil(s.duration/sec),rows=[];for(let i=0;i<n;i++){const seg=s.calc.filter(c=>c.t>=i*sec&&c.t<(i+1)*sec),last=s.calc.filter(c=>c.t>=(i+1)*sec-30&&c.t<(i+1)*sec),hr=s.hr.filter(h=>h.t>=(i+1)*sec-30&&h.t<(i+1)*sec);if(seg.length<10)continue;rows.push(`<tr><td>${i+1}</td><td class="num">${r1(s.protocol.start+s.protocol.step*i)} ${protoUnit(s.protocol)}</td><td class="num">${fmtTime(Math.min((i+1)*sec,s.duration)-i*sec)}</td><td class="num">${r1(mean((last.length?last:seg).map(c=>c.smo2)))}</td><td class="num">${hr.length?r0(mean(hr.map(h=>h.bpm))):'—'}</td><td>${ZONES[zoneIdx(seg.at(-1).zone)].short}</td></tr>`)}return`<h2>Etapas de la prueba</h2><table><thead><tr><th>Etapa</th><th class="num">Intensidad</th><th class="num">Duración</th><th class="num">SmO₂ final %</th><th class="num">FC final</th><th>Zona final</th></tr></thead><tbody>${rows.join('')}</tbody></table>`})():'';
+  return`<div class="rhead"><div class="rlogo">${HEX_LOGO}<div><h1>Informe de oxígeno muscular</h1><small>ReadHumHex · NIRS · SmO₂</small></div></div><div class="rmeta"><b style="color:#1d2333">${esc(d.toLocaleDateString('es-CL',{day:'numeric',month:'long',year:'numeric'}))}</b><br>${esc(d.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'}))} h · ID ${esc(s.id.slice(0,8))}</div></div>
+  ${s.source==='demo'?'<div class="rbox bad" style="margin-top:12px"><b>DATOS SIMULADOS (modo demostración).</b> Este informe es solo un ejemplo y no corresponde a una medición real.</div>':''}
+  <h2>Deportista</h2><dl class="rgrid">${row('Nombre',esc(u.name))}${row('Edad',a!=null?a+' años':'')}${row('Sexo',{F:'Femenino',M:'Masculino',X:'Otro'}[u.sex])}${row('Deporte',esc(u.sport))}${row('Peso',u.weight?r1(u.weight)+' kg':'')}${row('Talla',u.height?r1(u.height)+' cm':'')}${row('IMC',bmi?r1(bmi)+' kg/m²':'')}${row('Nivel',esc(u.level))}${row('Músculo',esc([u.muscle,u.side].filter(Boolean).join(' · ')))}${row('Evaluador',esc(u.evaluator))}</dl>
+  <h2>Sesión</h2><dl class="rgrid">${row('Actividad',esc(ACTIVITY[s.activity]))}${row('Tipo',esc(WTYPE[s.type]))}${row('Duración',fmtTime(s.duration))}${row('Fuente',esc(SOURCE[s.source]))}${row('Dispositivo',esc(s.device?[s.device.name,s.device.info].filter(Boolean).join(' · '):s.source==='hex'?'Humon Hex':'—'))}${row('Esfuerzo (Borg CR-10)',s.rpe!=null?s.rpe+' · '+RPE[s.rpe]:'')}${s.protocol?row('Protocolo',`${r1(s.protocol.start)} ${protoUnit(s.protocol)} + ${r1(s.protocol.step)} cada ${r1(s.protocol.stageMin)} min`):''}${row('Muestras',s.calc.length+' (1 Hz)')}</dl>
+  <h2>Resultados clave</h2><dl class="rgrid kpi">${row('SmO₂ promedio',r0(st.smo2.avg)+' %')}${row('SmO₂ mín. / máx.',r0(st.smo2.min)+' / '+r0(st.smo2.max)+' %')}${row('SmO₂ basal',r1(st.smo2.baseline)+' %')}${row('Desaturación',r1(st.smo2.desat)+' pts')}${row('FC promedio',fin(st.hr.avg)?r0(st.hr.avg)+' lpm':'')}${row('FC máxima',fin(st.hr.max)?r0(st.hr.max)+' lpm':'')}${row('Tiempo estable',Math.round(100*zt[3]/tot)+' %')}${row('Límite (zonas 4–5)',Math.round(100*(zt[4]+zt[5])/tot)+' %')}</dl>
+  <h2>Oxígeno muscular y frecuencia cardíaca</h2><div class="rchart">${sessionCharts(s,'smo2',true)}<div class="axis"><span>0:00</span><span>${fmtTime(s.duration/2)}</span><span>${fmtTime(s.duration)}</span></div><div class="rlegend"><span style="--dot:#0d9a5b">SmO₂ % (eje izq.)</span>${s.hr.length?'<span style="--dot:#b0122f">FC lpm (eje der.)</span>':''}<span style="--dot:linear-gradient(90deg,#00acff,#23ef7b,#f39412,#ff001f)">Zona de fondo</span></div></div>
+  ${s.calc.some(c=>fin(c.hbo2))?`<h2>Hemoglobina</h2><div class="rchart">${sessionCharts(s,'hb',true)}<div class="rlegend"><span style="--dot:#e5484d">HbO₂ µM</span><span style="--dot:#3b82f6">HHb µM</span><span style="--dot:#8b5cf6">tHb µM</span></div></div>`:''}
+  <h2>Distribución por zonas</h2><table><thead><tr><th>Zona</th><th>Significado</th><th class="num">Tiempo</th><th class="num">%</th></tr></thead><tbody>${[2,3,4,5,1].map(z=>`<tr><td><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${ZONES[z].color};margin-right:6px"></span>${z} · ${ZONES[z].name}</td><td>${ZONES[z].desc}</td><td class="num">${fmtTime(zt[z])}</td><td class="num">${Math.round(100*zt[z]/tot)}</td></tr>`).join('')}</tbody></table>
+  ${s.threshold?`<h2>Umbral por oxígeno muscular</h2><div class="rbox ${s.threshold.status==='ok'?'ok':'bad'}">${s.threshold.status==='ok'?`<b style="font-size:15px">${r1(s.threshold.intensity)} ${s.threshold.unit}${s.threshold.perKg?' · '+r1(s.threshold.perKg)+' W/kg':''}</b><br>Etapa ${s.threshold.stage} · tiempo ${fmtTime(s.threshold.timeSec)} · SmO₂ ≈ ${r0(s.threshold.smo2)} %${s.threshold.hr?' · FC ≈ '+s.threshold.hr+' lpm':''} · método ${esc(s.threshold.method)}<br><span style="color:#5f6b7f">R²: SmO₂ ${s.threshold.r2.smo2?.toFixed(3)??'—'} · HbO₂ ${s.threshold.r2.hbo2?.toFixed(3)??'—'} · HHb ${s.threshold.r2.hhb?.toFixed(3)??'—'}</span>`:`<b>Prueba no concluyente.</b> ${esc(s.threshold.reason)} No se informa un umbral.`}</div><div class="rchart" style="margin-top:8px">${thresholdChart(s,true)}<div class="rlegend"><span style="--dot:#0d9a5b">SmO₂</span><span style="--dot:#d18a00">Ajuste bilineal</span><span style="--dot:#c8102e">Umbral</span></div></div>${stageTable}`:''}
+  <h2>Síntesis</h2><p>${esc(interpret(s))}</p>
+  ${s.notes?`<h2>Notas</h2><p>${esc(s.notes)}</p>`:''}
+  ${u.notes?`<h2>Observaciones del deportista</h2><p>${esc(u.notes)}</p>`:''}
+  <div class="sign"><div>${esc(u.evaluator||'Evaluador')}</div><div>${esc(u.name)}</div></div>
+  <p class="disclaimer">Generado con ReadHumHex v${VERSION} (github.com/Csav20/readhumhex) el ${esc(new Date().toLocaleString('es-CL'))}. Herramienta de visualización y registro para entrenamiento e investigación; no es un dispositivo médico ni entrega diagnósticos. Las zonas son calculadas por el firmware del sensor, relativas a la calibración de cada colocación. El umbral se estima con un ajuste bilineal de dos segmentos sobre la SmO₂ y se declara no concluyente cuando la calidad del ajuste es insuficiente. Cliente independiente, no afiliado a Humon ni a Dynometrics.</p>`;
+}
+function renderReport(){
+  renderReportSelect();const s=db.sessions.find(x=>x.id===reportSessionId);
+  $('report-doc').innerHTML=s?reportHtml(s):'<div class="empty" style="color:#5f6b7f"><b style="color:#1d2333">No hay sesiones</b><span>Graba una sesión (o usa el modo demo) para generar un informe.</span></div>';
+}
+$('rep-session').onchange=e=>{reportSessionId=e.target.value;renderReport()};
+$('rep-print').onclick=()=>window.print();
+function reportFileBase(s){return`informe_${slug(s.userName)}_${s.date.slice(0,10)}`}
+$('rep-html').onclick=()=>{const s=db.sessions.find(x=>x.id===reportSessionId);if(!s)return;
+  const css=[...document.styleSheets[0].cssRules].map(r=>r.cssText).filter(t=>/\.report|@page|:root/.test(t)).join('\n');
+  download(reportFileBase(s)+'.html',`<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Informe ${esc(s.userName||'')} ${s.date.slice(0,10)}</title><style>${css}body{margin:0;background:#eef1f6;padding:20px;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif}@media print{body{background:#fff;padding:0}.report{box-shadow:none;padding:0}}</style></head><body><div class="report">${reportHtml(s)}</div></body></html>`,'text/html')};
+function exportCsv(s){if(!s)return;
+  const hrAt=new Map(s.hr.map(h=>[h.t,h.bpm]));
+  const meta=[`# ReadHumHex v${VERSION}`,`# deportista: ${s.userName||'sin asignar'}`,`# fecha: ${s.date}`,`# actividad: ${ACTIVITY[s.activity]} · tipo: ${WTYPE[s.type]} · fuente: ${SOURCE[s.source]}`];
+  if(s.threshold)meta.push(`# umbral: ${s.threshold.status==='ok'?s.threshold.intensity+' '+s.threshold.unit+' (t='+s.threshold.timeSec+' s)':'no concluyente'}`);
+  const rows=s.calc.map(c=>[c.t,c.smo2,c.hbo2??'',c.hhb??'',fin(c.hbo2)?+(c.hbo2+c.hhb).toFixed(2):'',c.zone,hrAt.get(c.t)??'',c.int??''].join(','));
+  download(reportFileBase(s).replace('informe','sesion')+'.csv',meta.join('\n')+'\ntiempo_s,smo2,hbo2,hhb,thb,zona,fc,intensidad\n'+rows.join('\n'),'text/csv')}
+$('rep-csv').onclick=()=>exportCsv(db.sessions.find(x=>x.id===reportSessionId));
+$('rep-json').onclick=()=>{const s=db.sessions.find(x=>x.id===reportSessionId);if(s)download(reportFileBase(s).replace('informe','sesion')+'.json',JSON.stringify({app:'ReadHumHex',version:VERSION,athlete:userById(s.userId),session:s},null,2),'application/json')};
+
+/* ════════════════════════════════════════════════════════════════════════════
+   IMPORTAR CSV · RESPALDO
+   ════════════════════════════════════════════════════════════════════════════ */
+function importCsv(text,name){
+  const lines=text.split(/\r?\n/).map(l=>l.trim()).filter(l=>l&&!l.startsWith('#'));if(!lines.length)throw new Error('archivo vacío');
+  const sep=[';','\t',','].find(s=>lines[0].includes(s))||',';
+  const split=l=>l.split(sep).map(v=>v.trim().replace(/^"|"$/g,''));
+  let head=split(lines[0]).map(h=>h.toLowerCase());const hasHead=head.some(h=>/[a-zñ]/.test(h));
+  const find=(...k)=>head.findIndex(h=>k.some(x=>x.endsWith('=')?h===x.slice(0,-1):h===x||h.startsWith(x)));
+  let iT=-1,iS=0,iO=-1,iH=-1,iZ=-1,iF=-1,iI=-1;
+  if(hasHead){iT=find('tiempo','time','t_s','t=','seg','s=');iS=find('smo2','sm02','smo₂','oxigeno','sat');iO=find('hbo2','o2hb','oxyhb');iH=find('hhb','deoxy','hhb_um');iZ=find('zona','zone');iF=find('fc','hr=','bpm','heart','frec');iI=find('intensidad','power','potencia','watts','int=','vel');if(iS<0)throw new Error('no se encontró la columna smo2')}
+  const num=v=>{const n=Number(String(v).replace(',','.'));return fin(n)?n:null};
+  const calc=[],hr=[];
+  lines.slice(hasHead?1:0).forEach((l,i)=>{const c=split(l),s=num(c[iS]);if(s==null)return;const sm=s<=1.05&&s>0?s*100:s;if(sm<0||sm>100)return;
+    const t=iT>=0?num(c[iT]):i;if(t==null)return;calc.push({t,smo2:sm,hbo2:iO>=0?num(c[iO]):null,hhb:iH>=0?num(c[iH]):null,zone:iZ>=0?zoneIdx(num(c[iZ])):0,int:iI>=0?num(c[iI]):null});
+    const f=iF>=0?num(c[iF]):null;if(f&&f>25&&f<240)hr.push({t,bpm:f})});
+  if(calc.length<5)throw new Error('se necesitan al menos 5 valores válidos de SmO₂ (0–100)');
+  const t0=calc[0].t;calc.forEach(c=>c.t-=t0);hr.forEach(h=>h.t-=t0);
+  const re=resample(calc.map(c=>({...c})),hr);const duration=re.calc.at(-1).t+1;
+  const u=activeUser();
+  const s={id:uid(),v:1,userId:u?.id||null,userName:u?.name||null,date:new Date().toISOString(),duration,activity:$('activity').value,type:'endurance',source:'csv',device:null,protocol:null,calc:re.calc,hr:re.hr,rpe:null,notes:'Importado desde '+name,stats:computeStats(re.calc,re.hr,duration),threshold:null};
+  if(!re.calc.some(c=>c.zone>0))s.notes+=' (sin columna de zona)';
+  db.sessions.unshift(s);saveDb();selectedSessionId=s.id;refreshAll();showView('history');toast(`CSV importado: ${re.calc.length} muestras.`,'ok');
+}
+$('csv-input').onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{importCsv(t,f.name)}catch(err){toast('CSV no válido: '+err.message,'error')}});e.target.value=''};
+$('bk-export').onclick=()=>download(`readhumhex_respaldo_${new Date().toISOString().slice(0,10)}.json`,JSON.stringify({app:'ReadHumHex',version:VERSION,exportedAt:new Date().toISOString(),users:db.users,sessions:db.sessions,activeUserId:db.activeUserId},null,1),'application/json');
+$('bk-input').onchange=e=>{const f=e.target.files[0];if(!f)return;f.text().then(t=>{try{const d=JSON.parse(t);if(!Array.isArray(d.users)||!Array.isArray(d.sessions))throw new Error('formato no reconocido');
+  const uids=new Set(db.users.map(u=>u.id)),sids=new Set(db.sessions.map(s=>s.id));let nu=0,ns=0;
+  d.users.forEach(u=>{if(u&&u.id&&u.name&&!uids.has(u.id)){db.users.push(u);nu++}});d.sessions.forEach(s=>{if(s&&s.id&&Array.isArray(s.calc)&&s.stats&&!sids.has(s.id)){db.sessions.push(s);ns++}});
+  db.sessions.sort((a,b)=>b.date.localeCompare(a.date));if(!db.activeUserId)db.activeUserId=d.activeUserId&&userById(d.activeUserId)?d.activeUserId:db.users[0]?.id||null;
+  saveDb();refreshAll();toast(`Respaldo importado: ${nu} deportista(s), ${ns} sesión(es).`,'ok')}catch(err){toast('Respaldo no válido: '+err.message,'error')}});e.target.value=''};
+$('bk-clear').onclick=()=>{if(!confirm('¿Borrar TODOS los deportistas y sesiones de este navegador? Exporta un respaldo antes si lo necesitas.'))return;db.users=[];db.sessions=[];db.activeUserId=null;saveDb();refreshAll();toast('Datos borrados.')};
+function renderUsage(){let bytes=0;try{bytes=(localStorage.getItem(STORE_KEY)||'').length*2}catch{}$('bk-usage').textContent=`${db.users.length} deportista(s) · ${db.sessions.length} sesión(es) · ${(bytes/1024/1024).toFixed(2)} MB usados (límite típico ≈ 5 MB).`}
+
+/* ── Diagnóstico BLE ───────────────────────────────────────────────────────── */
+function renderRates(){
+  ['DEEF','BEEF','ABC0','ABCD'].forEach(k=>{const hz=packetRate(k);$('rate-'+k.toLowerCase()).textContent=hz?hz.toFixed(1)+' Hz':'—'});
+  const raw=packetRate('BEEF');$('rate-verdict').textContent='RAW '+(raw?raw.toFixed(1)+' Hz — '+(raw>=25?'apto para PPG (detección de picos)':raw>=10?'marginal (solo autocorrelación)':'insuficiente: bajo Nyquist para FC'):'sin datos.');
+}
+$('btn-diag').onclick=()=>{const rates={};['DEEF','BEEF','ABC0','ABCD'].forEach(k=>rates[k]=+packetRate(k).toFixed(2));
+  download('readhumhex-diagnostico-ble.json',JSON.stringify({app:'ReadHumHex',version:VERSION,at:new Date().toISOString(),device:hex.device?.name||null,info:hex.info,state:hex.state?.id||null,calibration:hex.calibration,heartRateDevice:hex.hrDevice?.name||null,packetRates:rates,rateWindowMs:RATE_WIN,packets:hex.diag,userAgent:navigator.userAgent},null,2),'application/json')};
+
+/* ════════════════════════════════════════════════════════════════════════════
+   NAVEGACIÓN E INICIO
+   ════════════════════════════════════════════════════════════════════════════ */
+const VIEWS=['users','live','threshold','history','progress','report','settings','guide'];
+function showView(name){
+  if(!VIEWS.includes(name))name='live';
+  $$('.view').forEach(v=>v.classList.toggle('is-active',v.id===name));$$('.nav button').forEach(b=>b.classList.toggle('is-active',b.dataset.go===name));
+  if(location.hash!=='#'+name)history.replaceState(null,'','#'+name);
+  if(name==='history')renderHistory();if(name==='progress')renderProgress();if(name==='report')renderReport();if(name==='users')renderUsers();if(name==='threshold'&&rec.state==='idle')renderThresholdResult();if(name==='settings')renderUsage();
+  window.scrollTo(0,0);
+}
+function refreshAll(){renderUsers();renderLive();const v=document.querySelector('.view.is-active')?.id;if(v==='history')renderHistory();if(v==='progress')renderProgress();if(v==='report')renderReport();if(v==='threshold')renderThresholdResult();renderUsage()}
+function zoneListHtml(){return[2,3,4,5,1].map(z=>`<li data-z="${z}"><i style="background:${ZONES[z].color}"></i><span><b>${z} · ${ZONES[z].name}</b><small>${ZONES[z].desc}</small></span><strong>${z}</strong></li>`).join('')}
+
+$('btn-connect').onclick=hexMainAction;$('set-connect').onclick=connectHex;
+$('conn-chip').onclick=()=>{if(rec.source==='demo'&&rec.state!=='idle'){showView('live');return}connectHex()};
+$('btn-demo').onclick=startDemo;$('btn-hr').onclick=connectHr;$('set-hr').onclick=connectHr;
+$('btn-pause').onclick=togglePause;$('btn-finish').onclick=finishRecording;
+$('thr-start-hex').onclick=()=>startThreshold('hex');$('thr-start-demo').onclick=()=>startThreshold('demo');$('thr-stop').onclick=finishRecording;
+$('demo-speed').onchange=e=>{db.settings.demoSpeed=Number(e.target.value);saveDb();if(rec.source==='demo'&&rec.state==='recording'){rec.speed=db.settings.demoSpeed;$('v-speed').textContent=rec.speed>1?'Simulación a '+rec.speed+'×':''}};
+$('wtype').onchange=e=>{if(e.target.value==='incremental'){toast('Para la prueba incremental usa la pestaña Umbral.');showView('threshold')}};
+['p-mode','p-start','p-step','p-stage','p-min'].forEach(id=>$(id).addEventListener('change',()=>{if(id==='p-mode'){const run=$('p-mode').value==='run';$('p-start').value=run?8:30;$('p-step').value=run?1:30}readProtocol()}));
+window.addEventListener('hashchange',()=>showView(location.hash.slice(1)));
+window.addEventListener('beforeunload',e=>{if(rec.state==='recording'||rec.state==='paused'||rec.state==='stopped'){e.preventDefault();e.returnValue=''}});
+
+loadDb();
+$('ver').textContent=VERSION;$('zone-list').innerHTML=zoneListHtml();$('guide-zones').innerHTML=zoneListHtml();
+$('demo-speed').value=String(db.settings.demoSpeed);applyProtocolUi();
+if(!navigator.bluetooth){$('btn-connect').title=$('thr-start-hex').title='Este navegador no ofrece Bluetooth web';}
+setConn('Hex desconectado');updateButtons();renderUsers();
+showView(location.hash.slice(1)||'live');
+setInterval(loop,250);loop();
+</script>
+</body>
+</html>
