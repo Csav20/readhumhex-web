@@ -128,6 +128,9 @@ u{text-decoration:none;text-transform:none}
 #bigview .bv-sub{font-size:clamp(14px,3vw,20px);color:#d6d8e0}
 #bigview #big-close{position:absolute;top:14px;right:14px;border:1px solid #fff5;background:#0005;color:#fff;border-radius:50%;width:44px;height:44px;font-size:18px}
 table.mini{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}table.mini th,table.mini td{padding:6px 5px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}table.mini th{font-size:9px;text-transform:uppercase;color:var(--muted);letter-spacing:.05em}table.mini td:first-child,table.mini th:first-child{text-align:left}
+.mk{margin:0 0 14px;border:1px solid var(--line);border-radius:9px;background:var(--surface)}.mk summary{cursor:pointer;padding:10px 14px;font-size:12px;font-weight:700;color:var(--ink-2);list-style:none}.mk summary::-webkit-details-marker{display:none}.mk summary::before{content:"＋ ";color:var(--z3)}.mk[open] summary::before{content:"－ "}
+.mk-form{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;padding:0 14px 12px}.mk-form label{display:grid;gap:3px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}.mk-form input{width:92px}.mk-form input.wide{width:200px}
+.badge{display:inline-block;font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 6px;border-radius:4px;background:var(--surface-3);color:var(--ink-2);margin-left:6px;vertical-align:1px}.badge.exp{background:rgba(243,148,18,.18);color:#ffc163}.badge.fw{background:rgba(0,172,255,.15);color:#7fd0ff}.badge.res{background:rgba(35,239,123,.15);color:#5ff0a6}
 .zbar{display:flex;height:10px;border-radius:6px;overflow:hidden;background:var(--surface-3);margin-top:10px}
 .zbar i{display:block;height:100%}
 .tip{margin-top:12px;padding:11px 12px;border-left:3px solid var(--cyan);background:var(--surface-2);border-radius:0 7px 7px 0;font-size:12px;color:var(--ink-2)}
@@ -303,7 +306,8 @@ footer a{color:var(--muted)}
           <div class="ph"><div><h2 id="user-form-title">Nuevo deportista</h2><p>Los campos con * son obligatorios. El peso permite expresar el umbral en W/kg.</p></div></div>
           <form class="form" id="user-form" autocomplete="off">
             <input type="hidden" name="id">
-            <label class="field full">Nombre completo *<input type="text" name="name" required maxlength="80" placeholder="Nombre y apellido"></label>
+            <label class="field">Nombre completo *<input type="text" name="name" required maxlength="80" placeholder="Nombre y apellido"></label>
+            <label class="field">Código de participante<input type="text" name="code" maxlength="20" placeholder="Ej. P001 (para datos anónimos)"></label>
             <label class="field">Fecha de nacimiento<input type="date" name="birth"></label>
             <label class="field">Sexo<select name="sex"><option value="">—</option><option value="F">Femenino</option><option value="M">Masculino</option><option value="X">Otro / prefiere no decir</option></select></label>
             <label class="field">Peso (kg)<input type="number" name="weight" min="20" max="250" step="0.1" placeholder="70"></label>
@@ -336,7 +340,15 @@ footer a{color:var(--muted)}
           <button class="btn danger" id="btn-finish" disabled>Finalizar</button>
         </div>
       </div>
-      <div class="status-line"><span class="dot" id="rec-dot"></span><span id="rec-text">Sin sesión</span><span>·</span><span id="rec-user">Sin deportista</span></div>
+      <div class="status-line"><span class="dot" id="rec-dot"></span><span id="rec-text">Sin sesión</span><span>·</span><span id="rec-user">Sin deportista</span><span>·</span><span id="sig-q">Señal —</span><span id="res-flag" class="badge res" hidden>Modo investigación</span></div>
+      <details class="mk" data-mk><summary>Registrar muestra: lactato, VO₂, percepción o nota (queda marcada en el tiempo de la sesión)</summary><div class="mk-form">
+        <label>Lactato mmol/L<input type="number" step="0.1" min="0" max="30" data-f="lac"></label>
+        <label>VO₂ mL/kg/min<input type="number" step="0.1" min="0" max="100" data-f="vo2"></label>
+        <label>VE L/min<input type="number" step="0.1" min="0" max="300" data-f="ve"></label>
+        <label>RER<input type="number" step="0.01" min="0.5" max="2" data-f="rer"></label>
+        <label>Percepción 1–10<input type="number" step="1" min="1" max="10" data-f="rpe"></label>
+        <label>Nota<input type="text" class="wide" maxlength="120" data-f="note" placeholder="p. ej. muestra capilar fase 4"></label>
+        <button class="btn sm primary" type="button" data-mk-save>Registrar</button></div></details>
       <div class="banner" id="no-user-banner" hidden><span>No hay un deportista activo. La sesión se guardará como <b>sin asignar</b>.</span><button class="btn sm" data-go="users">Crear ficha</button></div>
 
       <div class="live-top">
@@ -346,7 +358,7 @@ footer a{color:var(--muted)}
             <dl class="hb-row"><div><dt>HbO₂ <u>µM</u></dt><dd id="v-hbo2">—</dd></div><div><dt>HHb <u>µM</u></dt><dd id="v-hhb">—</dd></div><div><dt>tHb <u>µM</u></dt><dd id="v-thb">—</dd></div></dl>
           </div>
         </article>
-        <article class="panel"><p class="label">Frecuencia cardíaca</p><p class="big" id="v-hr">—<small>lpm</small></p><p class="foot" id="hr-src">Sin banda de FC. El Hex no mide FC.</p><button class="btn sm" id="btn-hr" style="margin-top:10px">Conectar banda FC</button></article>
+        <article class="panel"><p class="label">Frecuencia cardíaca</p><p class="big" id="v-hr">—<small>lpm</small></p><p class="foot" id="hr-src">Sin banda de FC. El Hex no mide FC.</p><p class="foot" id="v-dfa"></p><button class="btn sm" id="btn-hr" style="margin-top:10px">Conectar banda FC</button></article>
         <article class="panel"><p class="label">Zona</p><p class="big" id="v-zone">—<small>/ 5</small></p><div class="zone-scale"><i id="zone-marker"></i></div><p class="foot" id="zone-label">Sin lectura</p></article>
         <article class="panel"><p class="label">Tiempo de sesión</p><p class="big" id="v-time">00:00</p><p class="foot" id="v-intensity">—</p><p class="foot" id="v-lap"></p><p class="foot" id="v-warm"></p><p class="foot" id="v-speed"></p></article>
       </div>
@@ -375,6 +387,14 @@ footer a{color:var(--muted)}
         <div><p class="eyebrow">Prueba incremental</p><h1 id="thr-title">Umbral por oxígeno muscular</h1><p class="sub">Protocolo escalonado. Al terminar se ajustan dos rectas a la curva de SmO₂. Su punto de quiebre marca el umbral. Si el ajuste no es confiable, la prueba se declara no concluyente.</p></div>
         <div class="actions"><button class="btn primary" id="thr-start-hex">Iniciar con Hex</button><button class="btn" id="thr-start-demo">Iniciar en demo</button><button class="btn danger" id="thr-stop" disabled>Agotamiento · recuperar</button></div>
       </div>
+      <details class="mk" data-mk><summary>Registrar muestra: lactato, VO₂, percepción o nota (queda marcada en el tiempo de la sesión)</summary><div class="mk-form">
+        <label>Lactato mmol/L<input type="number" step="0.1" min="0" max="30" data-f="lac"></label>
+        <label>VO₂ mL/kg/min<input type="number" step="0.1" min="0" max="100" data-f="vo2"></label>
+        <label>VE L/min<input type="number" step="0.1" min="0" max="300" data-f="ve"></label>
+        <label>RER<input type="number" step="0.01" min="0.5" max="2" data-f="rer"></label>
+        <label>Percepción 1–10<input type="number" step="1" min="1" max="10" data-f="rpe"></label>
+        <label>Nota<input type="text" class="wide" maxlength="120" data-f="note" placeholder="p. ej. muestra capilar fase 4"></label>
+        <button class="btn sm primary" type="button" data-mk-save>Registrar</button></div></details>
       <div class="grid g3">
         <article class="panel">
           <div class="ph"><div><h2>Protocolo</h2><p>Estándar: bicicleta 30 W +30 W; cinta 5 km/h +1 km/h; fases de 3 min y 3 min de recuperación.</p></div></div>
@@ -474,6 +494,9 @@ footer a{color:var(--muted)}
           <div><span>STATE · 0000abc0</span><b id="rate-abc0">—</b></div>
           <div><span>CMD · 0000abcd</span><b id="rate-abcd">—</b></div>
         </div><p class="foot" id="rate-verdict">RAW sin datos.</p><button class="btn sm" id="btn-diag" style="margin-top:10px">Exportar diagnóstico BLE</button></article>
+        <article class="panel"><div class="ph"><div><h2>Modo investigación <span class="badge res">datos completos</span></h2><p>Para validar y mejorar algoritmos con lactato y CPET.</p></div></div>
+          <label class="field">Estado<select id="research-on"><option value="0">Desactivado</option><option value="1">Activado</option></select></label>
+          <ul class="foot" style="padding-left:16px;margin:8px 0 0"><li>Graba el Hex a frecuencia completa (~4 Hz): HHb, HbO₂, SmO₂, <b>zona del firmware</b> y la señal cruda (RAW), con la hora de llegada de cada paquete.</li><li>Graba los <b>intervalos RR</b> de la banda y calcula DFA‑α1.</li><li>Al guardar, descarga un <b>paquete .json</b> identificado con el <b>código de participante</b>, sin nombre. Analízalo con los scripts de la carpeta <code>analysis/</code> del repo.</li><li>El paquete completo no se guarda en el navegador: consérvalo tú.</li></ul></article>
         <article class="panel"><div class="ph"><div><h2>Avisos por voz</h2><p>Habla mientras grabas: zona, SmO₂, tendencia y FC.</p></div></div>
           <div class="form" style="grid-template-columns:1fr 1fr">
             <label class="field">Activar<select id="voice-on"><option value="0">Desactivados</option><option value="1">Activados</option></select></label>
@@ -531,6 +554,7 @@ footer a{color:var(--muted)}
     <div><p class="label">¿Percepción del entrenamiento? (1–10)</p><div class="rpe" id="rpe"></div><p class="rpe-label" id="rpe-label">Sin evaluar</p></div>
     <label class="field">Notas de entrenamiento<textarea id="finish-notes" rows="3" maxlength="500" placeholder="Sensaciones, incidencias, condiciones…"></textarea></label>
     <label class="note" id="raw-wrap" hidden><input type="checkbox" id="raw-dl"> Descargar también la señal cruda (RAW) en .csv</label>
+    <label class="note" id="pkg-wrap" hidden><input type="checkbox" id="pkg-dl" checked> Descargar el paquete de investigación (.json, anónimo)</label>
     <p class="note" id="finish-summary"></p>
     <div class="actions"><button class="btn primary" value="save" id="finish-save">Guardar entrenamiento</button><button class="btn danger" value="discard" id="finish-discard">Descartar</button></div>
   </form>
@@ -546,7 +570,7 @@ footer a{color:var(--muted)}
    Todo corre en el navegador: Web Bluetooth para los sensores, localStorage para
    los datos, SVG propio para los gráficos. Sin servidores ni dependencias.
    ════════════════════════════════════════════════════════════════════════════ */
-const VERSION='1.2.0';
+const VERSION='1.3.0';
 const $=id=>document.getElementById(id);
 const $$=(sel,root=document)=>[...root.querySelectorAll(sel)];
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -710,16 +734,16 @@ async function fetchCalibration(){
 function onCalc(e){
   const dv=e.target.value;recordPacket('DEEF',dv);if(dv.byteLength<16)return;
   const hhb=dv.getFloat32(0,true),hbo2=dv.getFloat32(4,true),s=dv.getFloat32(8,true),zone=dv.getFloat32(12,true);
-  if(!fin(s)||s<0||s>1.05)return;
-  const thb=hhb+hbo2;if(thb>0&&Math.abs(hbo2/thb-s)>0.025)return; // coherencia HbO₂/tHb ≈ SmO₂
+  if(!fin(s)||s<0||s>1.05){hex.rejects=(hex.rejects||0)+1;return}
+  const thb=hhb+hbo2;if(thb>0&&Math.abs(hbo2/thb-s)>0.025){hex.rejects=(hex.rejects||0)+1;return} // coherencia HbO₂/tHb ≈ SmO₂
   if(!hex.firstCalcAt)hex.firstCalcAt=Date.now();
   /* Sin canal de comandos o sin estado tras 20 s con datos: se graba, pero se declara. */
   if((rec.state==='idle'||rec.state==='armed')&&(!hex.cmdQueue||Date.now()-hex.firstCalcAt>20000)){
     clearInterval(hex.statePoll);hex.statePoll=null;$('st-cal').textContent='No verificada · datos recibidos';beginRecording('hex');
   }
-  pushSample({smo2:s*100,hhb,hbo2,zone:zoneIdx(zone)},'hex');
+  pushSample({smo2:s*100,hhb,hbo2,zone:zoneIdx(zone),zraw:zone},'hex');
 }
-function onRaw(e){const dv=e.target.value;recordPacket('BEEF',dv);if(dv.byteLength<16||rec.state!=='recording'||rec.source!=='hex')return;const a=[];for(let i=0;i<8;i++)a.push(dv.getUint16(i*2,true));if(rec.raw.length<200000)rec.raw.push([+rec.elapsed.toFixed(2),...a])}
+function onRaw(e){const dv=e.target.value;recordPacket('BEEF',dv);if(dv.byteLength<16||rec.state!=='recording'||rec.source!=='hex')return;const a=[];for(let i=0;i<8;i++)a.push(dv.getUint16(i*2,true));if(rec.raw.length<200000)rec.raw.push([+rec.elapsed.toFixed(2),...a,+performance.now().toFixed(1)])}
 async function readBattery(server,target){
   try{const svc=await server.getPrimaryService('battery_service'),ch=await svc.getCharacteristic('battery_level');const show=v=>{const lv=v.getUint8(0);$(target).textContent=lv+' %';if(target==='st-bat'&&lv<=10&&!hex.lowBatWarned){hex.lowBatWarned=true;toast(`La batería del Hex está baja (${lv} %)`,'error')}};show(await ch.readValue());
     try{await ch.startNotifications();ch.addEventListener('characteristicvaluechanged',e=>show(e.target.value))}catch{}}
@@ -749,7 +773,9 @@ async function connectHr(){
     hex.hrDevice=device;device.addEventListener('gattserverdisconnected',onHrDisconnected);
     const server=await device.gatt.connect(),svc=await server.getPrimaryService('heart_rate'),ch=await svc.getCharacteristic('heart_rate_measurement');
     await ch.startNotifications();
-    ch.addEventListener('characteristicvaluechanged',e=>{const dv=e.target.value;if(dv.byteLength<2)return;const flags=dv.getUint8(0);pushHr((flags&1)?dv.getUint16(1,true):dv.getUint8(1),'band')});
+    ch.addEventListener('characteristicvaluechanged',e=>{const dv=e.target.value;if(dv.byteLength<2)return;const flags=dv.getUint8(0);pushHr((flags&1)?dv.getUint16(1,true):dv.getUint8(1),'band');
+      /* Heart Rate Measurement: bit3 = energía (2 B), bit4 = intervalos RR en 1/1024 s */
+      let o=(flags&1)?3:2;if(flags&8)o+=2;if(flags&16){for(;o+1<dv.byteLength;o+=2)pushRR(dv.getUint16(o,true)*1000/1024,'band')}});
     hex.hrStatus=(device.name||'Banda')+' conectada';readBattery(server,'st-hrbat');
     $('hr-name').textContent=device.name||'Banda conectada';$('set-hr').textContent='Desconectar banda';$('btn-hr').textContent='Desconectar banda';renderHr();
   }catch(err){if(err.name!=='NotFoundError')toast('No se pudo conectar la banda: '+err.message,'error')}
@@ -761,7 +787,7 @@ function onHrDisconnected(){hex.hrDevice=null;hex.hr=null;hex.hrStatus='Banda de
    Un reloj virtual (rec.elapsed) avanza con el tiempo real × velocidad; en el modo
    demo la velocidad puede ser 5–20× para recorrer una prueba en pocos minutos.
    ════════════════════════════════════════════════════════════════════════════ */
-const rec={state:'idle',source:null,startedAt:null,elapsed:0,lastTick:0,speed:1,calc:[],hr:[],raw:[],zoneTime:[0,0,0,0,0,0],last:null,lastAt:0,activity:'cycling',type:'endurance',protocol:null,stopped:false};
+const rec={full:[],rr:[],markers:[],dfa:[],state:'idle',source:null,startedAt:null,elapsed:0,lastTick:0,speed:1,calc:[],hr:[],raw:[],zoneTime:[0,0,0,0,0,0],last:null,lastAt:0,activity:'cycling',type:'endurance',protocol:null,stopped:false};
 function currentIntensity(){const p=rec.protocol;if(!p)return null;
   if(p.stopAt!=null){const rs=(p.recMin??3)*60,el=rec.elapsed-p.stopAt;return{recovery:true,stage:'R',value:null,left:Math.max(0,rs-el),frac:rs?Math.min(1,el/rs):1}}
   const i=Math.floor(rec.elapsed/(p.stageMin*60));return{stage:i+1,value:p.start+p.step*i,left:p.stageMin*60-(rec.elapsed%(p.stageMin*60)),frac:(rec.elapsed%(p.stageMin*60))/(p.stageMin*60)}}
@@ -773,7 +799,7 @@ function beginRecording(source){
   if(rec.state==='recording')return;
   rec.state='recording';rec.source=source;rec.startedAt=new Date();rec.elapsed=0;rec.lastTick=performance.now();
   rec.speed=source==='demo'?Number(db.settings.demoSpeed)||1:1;
-  rec.calc=[];rec.hr=[];rec.raw=[];rec.zoneTime=[0,0,0,0,0,0];rec.last=null;stageAnnounced=0;rec.laps=[];rec.warmAt=null;rec.redSaid=false;voiceNextAt=0;voiceZone=null;voiceZoneSaid=null;
+  rec.calc=[];rec.hr=[];rec.raw=[];rec.zoneTime=[0,0,0,0,0,0];rec.last=null;stageAnnounced=0;rec.laps=[];rec.warmAt=null;rec.redSaid=false;rec.full=[];rec.rr=[];rec.markers=[];rec.dfa=[];dfaNextAt=0;hex.rejects=0;voiceNextAt=0;voiceZone=null;voiceZoneSaid=null;
   rec.activity=$('activity').value;rec.type=$('wtype').value;
   rec.protocol=rec.type==='incremental'?{...readProtocol()}:null;
   if(source==='demo')demo.reset();
@@ -788,8 +814,10 @@ function pushSample(s,source,tOverride){
   if(rec.state==='recording'&&rec.source===source){
     const ci=currentIntensity(),t=tOverride??rec.elapsed;
     rec.calc.push({t:+t.toFixed(2),smo2:+s.smo2.toFixed(2),hbo2:fin(s.hbo2)?+s.hbo2.toFixed(2):null,hhb:fin(s.hhb)?+s.hhb.toFixed(2):null,zone:s.zone,int:ci&&!ci.recovery?ci.value:null});
+    if(researchOn()&&rec.full.length<400000)rec.full.push([+t.toFixed(3),fin(s.hhb)?+s.hhb.toFixed(4):null,fin(s.hbo2)?+s.hbo2.toFixed(4):null,+(s.smo2/100).toFixed(5),s.zraw??s.zone,+performance.now().toFixed(1)]);
   }
 }
+function pushRR(ms,source,tOverride){if(!fin(ms)||ms<250||ms>2500)return;hex.rrLast=Date.now();if(rec.state==='recording'&&(source==='band'||rec.source===source)){rec.rr.push([+(tOverride??rec.elapsed).toFixed(3),+ms.toFixed(1)]);if(rec.rr.length>60000)rec.rr.shift()}}
 function pushHr(bpm,source,tOverride){
   bpm=Math.round(bpm);if(!fin(bpm)||bpm<25||bpm>240)return;
   hex.hr=bpm;hex.hrAt=Date.now();
@@ -843,7 +871,7 @@ function buildSession(rpe,notes){
   const u=activeUser();
   const session={id:uid(),v:1,userId:u?.id||null,userName:u?.name||null,date:rec.startedAt.toISOString(),duration:+duration.toFixed(1),
     activity:rec.activity,type:rec.type,source:rec.source,device:rec.source==='hex'?{name:hex.device?.name||'Humon Hex',info:hex.info,...(hex.devInfo||{}),calibration:hex.calibration}:null,
-    protocol:rec.protocol,calc,hr,rpe,notes,laps:rec.laps.slice(),warmupAt:rec.warmAt,stats:computeStats(calc,hr,duration),threshold:null};
+    protocol:rec.protocol,calc,hr,rpe,notes,laps:rec.laps.slice(),warmupAt:rec.warmAt,markers:rec.markers.map(m=>{const near=rec.calc.filter(c=>Math.abs(c.t-m.t)<=10).map(c=>c.smo2);return{...m,smo2:near.length?+mean(near).toFixed(1):null}}),dfa:rec.dfa.slice(),research:researchOn(),stats:computeStats(calc,hr,duration),threshold:null};
   if(session.type==='incremental'&&session.protocol)session.threshold=analyzeThreshold(session);
   return session;
 }
@@ -940,7 +968,7 @@ function redHtml(r,unit,w){if(!r)return'<p>Inicio de zona roja: no se sostuvo �
    SmO₂ responde a la intensidad con una cinética de primer orden y un quiebre
    por encima de un umbral de referencia; FC con su propia cinética.
    ════════════════════════════════════════════════════════════════════════════ */
-const demo={smo2:74,hr:68,phase:0,acc:0,lt:210,reset(){const w=activeUser()?.weight||70;this.lt=Math.round(w*3)/1;this.smo2=(rec.protocol?74:65)+gauss()*0.5;this.hr=66+gauss()*2;this.acc=0;this.hrAcc=0}};
+const demo={smo2:74,hr:68,phase:0,acc:0,lt:210,reset(){const w=activeUser()?.weight||70;this.lt=Math.round(w*3)/1;this.smo2=(rec.protocol?74:65)+gauss()*0.5;this.hr=66+gauss()*2;this.acc=0;this.hrAcc=0;this.rrT=null;this.ar=0;this.rawAcc=0}};
 function gauss(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
 function demoIntensity(t){
   const lt=demo.lt;
@@ -962,6 +990,13 @@ function demoStep(dt){
     pushSample({smo2:s,hbo2,hhb,zone},'demo',Math.max(0,rec.elapsed-demo.acc));
   }
   demo.hrAcc=(demo.hrAcc||0)+dt;while(demo.hrAcc>=1){demo.hrAcc-=1;pushHr(demo.hr+gauss()*1.2,'demo',Math.max(0,rec.elapsed-demo.hrAcc))}
+  /* RR simulado: ruido correlacionado (α1≈1) a baja intensidad y blanco (α1≈0,5) a alta */
+  demo.rrT=demo.rrT??rec.elapsed;const rel=clamp(P/lt,0,1.5),wCorr=clamp(1.15-rel*0.85,0.05,1);
+  while(demo.rrT<rec.elapsed){demo.ar=0.93*(demo.ar||0)+gauss();const base=60000/Math.max(40,demo.hr),rr=base*(1+0.035*(wCorr*demo.ar*0.37+(1-wCorr)*gauss()));demo.rrT+=rr/1000;pushRR(rr,'demo',demo.rrT)}
+  /* RAW simulado (solo modo investigación): 8 canales con componente pulsátil, rotulado como simulado */
+  if(researchOn()){demo.rawAcc=(demo.rawAcc||0)+dt;while(demo.rawAcc>=0.25){demo.rawAcc-=0.25;const tt=rec.elapsed-demo.rawAcc,ph=2*Math.PI*(demo.hr/60)*tt,pul=Math.sin(ph)*0.004,sm=demo.smo2/100,ch=[];
+    for(let k=0;k<8;k++){const red=k%2===0,dist=1+(k>>1)%4*0.6,base=(red?26000:31000)/dist*(red?(1.35-sm):(0.65+sm*0.5));ch.push(Math.round(base*(1+pul*(red?1:0.6)+gauss()*0.0015)))}
+    if(rec.raw.length<200000)rec.raw.push([+tt.toFixed(2),...ch,+performance.now().toFixed(1)])}}
 }
 function startDemo(){
   if(hex.connected){toast('Desconecta el Hex para usar el modo demo.','error');return}
@@ -971,6 +1006,41 @@ function startDemo(){
   rec.state='armed';updateButtons();
   setTimeout(()=>{if(rec.state==='armed')beginRecording('demo')},1500);
 }
+
+/* ── DFA-α1 (Gronwald/Rogers): ventana de 2 min de RR, cajas de 4 a 16 latidos.
+   α1 ≈ 0,75 ↔ VT1 y α1 ≈ 0,5 ↔ VT2 en la literatura; aquí se rotula experimental. ── */
+function cleanRR(rr){const out=[];for(const v of rr){const p=out.at(-1);if(v<300||v>2000)continue;if(p&&Math.abs(v-p)/p>0.2)continue;out.push(v)}return out}
+function dfaA1(rr){const x=cleanRR(rr);if(x.length<80)return null;const m=mean(x),y=[];let c=0;for(const v of x){c+=v-m;y.push(c)}
+  const ln=[],lf=[];for(let n=4;n<=16;n++){const nb=Math.floor(y.length/n);if(nb<2)continue;let ss=0,cnt=0;
+    for(let b=0;b<nb;b++){const s0=b*n;let sx=0,sy=0,sxx=0,sxy=0;for(let i=0;i<n;i++){sx+=i;sy+=y[s0+i];sxx+=i*i;sxy+=i*y[s0+i]}const den=n*sxx-sx*sx,k=(n*sxy-sx*sy)/den,a=(sy-k*sx)/n;for(let i=0;i<n;i++){const d=y[s0+i]-(a+k*i);ss+=d*d;cnt++}}
+    ln.push(Math.log(n));lf.push(Math.log(Math.sqrt(ss/cnt)))}
+  if(ln.length<5)return null;const mx=mean(ln),my=mean(lf);let sxy=0,sxx=0;ln.forEach((v,i)=>{sxy+=(v-mx)*(lf[i]-my);sxx+=(v-mx)**2});return sxy/sxx}
+let dfaNextAt=0;
+function dfaTick(){if(rec.state!=='recording'||rec.elapsed<dfaNextAt)return;dfaNextAt=rec.elapsed+15;const w=rec.rr.filter(r=>r[0]>=rec.elapsed-120).map(r=>r[1]);const a=dfaA1(w);
+  if(a!=null&&fin(a)){const hr=rec.hr.filter(h=>h.t>=rec.elapsed-15).map(h=>h.bpm);rec.dfa.push({t:+rec.elapsed.toFixed(0),a1:+a.toFixed(3),hr:hr.length?Math.round(mean(hr)):null})}}
+function dfaThresholds(d){const v=(d||[]).filter(x=>x.hr&&x.a1>0.25&&x.a1<1.3);if(v.length<8)return null;const mx=mean(v.map(x=>x.hr)),my=mean(v.map(x=>x.a1));let sxy=0,sxx=0,syy=0;v.forEach(x=>{sxy+=(x.hr-mx)*(x.a1-my);sxx+=(x.hr-mx)**2;syy+=(x.a1-my)**2});
+  const k=sxy/sxx,c=my-k*mx,r2=sxx&&syy?(sxy*sxy)/(sxx*syy):0;if(!(k<0)||r2<0.5)return{status:'failed',r2,n:v.length};const hrAt=a=>(a-c)/k;
+  return{status:'ok',r2,n:v.length,vt1:Math.round(hrAt(0.75)),vt2:Math.round(hrAt(0.5)),minHr:Math.min(...v.map(x=>x.hr)),maxHr:Math.max(...v.map(x=>x.hr))}}
+function dfaHtml(d){const t=dfaThresholds(d);if(!t)return'';if(t.status!=='ok')return`<p>DFA‑α1 <span class="badge exp">experimental</span>: relación α1–FC insuficiente (R² ${t.r2.toFixed(2)}, ${t.n} puntos).</p>`;
+  const out=x=>x<t.minHr-5||x>t.maxHr+5?' (extrapolado)':'';return`<p>DFA‑α1 <span class="badge exp">experimental</span>: FC en α1 = 0,75 (≈VT1) <b>${t.vt1} lpm</b>${out(t.vt1)} · α1 = 0,5 (≈VT2) <b>${t.vt2} lpm</b>${out(t.vt2)} · R² ${t.r2.toFixed(2)}, ${t.n} puntos</p>`}
+/* ── Marcadores (lactato, VO₂, VE, RER, percepción, nota) ─────────────────── */
+function saveMarker(box){if(rec.state!=='recording'&&rec.state!=='paused'){toast('Inicia una sesión para registrar muestras.','error');return}
+  const m={t:+rec.elapsed.toFixed(1)},ci=currentIntensity();if(ci)m.stage=ci.recovery?'R':ci.stage;
+  box.querySelectorAll('[data-f]').forEach(i=>{const v=i.value.trim();if(!v)return;m[i.dataset.f]=i.dataset.f==='note'?v:Number(String(v).replace(',','.'))});
+  if(Object.keys(m).length<=(ci?2:1)){toast('Ingresa al menos un valor.','error');return}
+  rec.markers.push(m);box.querySelectorAll('[data-f]').forEach(i=>i.value='');toast(`Muestra registrada a los ${fmtTime(m.t)}${m.lac!=null?' · lactato '+m.lac+' mmol/L':''}`,'ok')}
+function markerTable(ms){if(!ms?.length)return'';const has=k=>ms.some(m=>m[k]!=null);const cols=[['lac','Lactato'],['vo2','VO₂'],['ve','VE'],['rer','RER'],['rpe','Percep.']].filter(([k])=>has(k));
+  return`<table class="mini"><thead><tr><th>Tiempo</th><th>Fase</th>${cols.map(c=>`<th>${c[1]}</th>`).join('')}<th>SmO₂</th><th>Nota</th></tr></thead><tbody>${ms.map(m=>`<tr><td>${fmtTime(m.t)}</td><td>${m.stage??'—'}</td>${cols.map(([k])=>`<td>${m[k]??'—'}</td>`).join('')}<td>${m.smo2!=null?r1(m.smo2):'—'}</td><td style="text-align:left">${esc(m.note||'')}</td></tr>`).join('')}</tbody></table>`}
+/* ── Paquete de investigación (esquema readhumhex-research/1) ─────────────── */
+function researchOn(){return !!db.settings.research}
+function researchPackage(s){const u=userById(s.userId)||{};const code=u.code||('anon-'+s.id.slice(0,6));
+  return{schema:'readhumhex-research/1',app:'ReadHumHex',version:VERSION,exportedAt:new Date().toISOString(),
+    participant:{code,sex:u.sex||null,age:age(u.birth,new Date(s.date)),weight_kg:u.weight??null,height_cm:u.height??null,skinfold_mm:u.fat??null,sport:u.sport||null,level:u.level||null,muscle:u.muscle||null,side:u.side||null},
+    session:{id:s.id,start:s.date,duration_s:s.duration,activity:s.activity,type:s.type,source:s.source,simulated:s.source==='demo',protocol:s.protocol,rpe:s.rpe,warmup_at_s:s.warmupAt??null,laps_s:(s.laps||[]).map(l=>l.t)},
+    device:s.device?{name:s.device.name,model:s.device.model||null,manufacturer:s.device.man||null,serial:s.device.serial||null,hw:s.device.hw||null,fw:s.device.fw||null,calibration:s.device.calibration||null}:null,
+    streams:{calc:{columns:['t_s','hhb_uM','hbo2_uM','smo2_frac','zone_fw','arrival_ms'],rows:rec.full},raw:{columns:['t_s','raw1a','raw2a','raw3a','raw4a','raw1b','raw2b','raw3b','raw4b','arrival_ms'],rows:rec.raw,simulated:s.source==='demo'},
+      hr:{columns:['t_s','bpm'],rows:rec.hr.map(h=>[h.t,h.bpm])},rr:{columns:['t_s','rr_ms'],rows:rec.rr},calc_1hz:s.calc},
+    markers:s.markers||[],derived:{stats:s.stats,threshold:s.threshold?{...s.threshold,fit:undefined}:null,dfa:s.dfa||[],dfa_thresholds:dfaThresholds(s.dfa),intervals:analyzeIntervals(s),laps:lapStats(s),analytics:sessionAnalytics(s)}}}
 
 /* ── Tendencia de SmO₂ (pendiente de los últimos 20 s) ─────────────────────── */
 function trendInfo(win=20){const t1=rec.elapsed,pts=rec.calc.filter(c=>c.t>=t1-win);if(pts.length<5)return null;
@@ -1017,7 +1087,7 @@ function loop(){
     if(ci&&ci.recovery&&ci.left<=0&&rec.state==='recording'){toast('Prueba de umbral completada.','ok');voiceEvent('Prueba completada');finishRecording(true);return}
     if(ci&&!ci.recovery&&ci.stage!==stageAnnounced){stageAnnounced=ci.stage;if(ci.stage>1){toast(`Fase ${ci.stage}: sube a ${r1(ci.value)} ${protoUnit(rec.protocol)}`,'ok');voiceEvent(`Fase ${ci.stage}. Sube a ${r1(ci.value)} ${rec.protocol.mode==='run'?'kilómetros por hora':'vatios'}`)}}
     if(rec.protocol&&rec.protocol.stopAt==null&&!rec.redSaid){const r5=rec.calc.filter(c=>c.t>=rec.elapsed-30);if(r5.length>=20&&r5.every(c=>zoneIdx(c.zone)===5)){rec.redSaid=true;toast('Zona roja sostenida: inicio ≈ 4 mmol/L de lactato.');voiceEvent('Zona roja sostenida')}}
-    checkWarmup();voiceTick();
+    checkWarmup();voiceTick();dfaTick();
   }else rec.lastTick=now;
   if(now-lastRender>240){lastRender=now;renderLive();renderThresholdLive();renderRates();renderBig()}
 }
@@ -1070,7 +1140,7 @@ function updateButtons(){
   $('btn-finish').disabled=!active;$('btn-lap').disabled=rec.state!=='recording';$('btn-connect').disabled=rec.state!=='idle'&&!(rec.source==='hex'&&rec.state==='paused');$('btn-demo').disabled=rec.state!=='idle'||hex.connected;
   $('activity').disabled=$('wtype').disabled=rec.state!=='idle';
   const thrBusy=rec.state!=='idle';$('thr-start-hex').disabled=thrBusy;$('thr-start-demo').disabled=thrBusy||hex.connected;$('thr-stop').disabled=!(active&&rec.protocol);if(!rec.protocol)$('thr-stop').textContent='Agotamiento · recuperar';
-  $$('#threshold input,#threshold select').forEach(i=>i.disabled=thrBusy);
+  $$('#threshold .form input,#threshold .form select').forEach(i=>i.disabled=thrBusy);
 }
 function renderHr(){
   const fresh=hex.hr!=null&&Date.now()-(hex.hrAt||0)<6000;
@@ -1094,6 +1164,8 @@ function renderLive(){
   {const tr=rec.state==='recording'||rec.state==='paused'?trendInfo():null,te=$('v-trend');te.className='trend'+(tr?' '+tr.dir:'');te.textContent=tr?tr.arrow+' '+tr.text:''}
   {const n=rec.laps?.length||0,prev=rec.laps?.at(-1)?.t??0;$('v-lap').textContent=rec.state==='idle'?'':`Vuelta ${n+1} · ${fmtTime(rec.elapsed-prev)}`;
    $('v-warm').textContent=rec.state==='idle'||rec.protocol?'':rec.warmAt!=null?'✓ Calentamiento listo ('+fmtTime(rec.warmAt)+')':rec.elapsed<1200?'Calentando… espera que la SmO₂ se estabilice':''}
+  {const hz=rec.source==='demo'&&rec.state!=='idle'?null:packetRate('DEEF');$('sig-q').textContent=rec.source==='demo'&&rec.state!=='idle'?'Señal simulada':hex.connected?`Señal ${hz?hz.toFixed(1)+' Hz':'sin datos'} · ${hex.rejects||0} paquetes descartados`:'Señal —';$('res-flag').hidden=!researchOn();
+   const d=rec.dfa.at(-1);$('v-dfa').innerHTML=d&&rec.state!=='idle'?`DFA‑α1 ${d.a1.toFixed(2)} <span class="badge exp">exp.</span> ${d.a1>0.75?'· bajo VT1':d.a1>0.5?'· entre VT1 y VT2':'· sobre VT2'}`:rec.rr.length?'DFA‑α1: acumulando RR…':''}
   $('v-time').textContent=fmtTime(rec.elapsed);$('axis-now').textContent=fmtTime(rec.elapsed);
   const ci=currentIntensity();$('v-intensity').textContent=ci?(ci.recovery?`Recuperación · ${fmtTime(ci.left)} restante`:`Fase ${ci.stage} · ${r1(ci.value)} ${protoUnit(rec.protocol)} · ${fmtTime(ci.left)} restante`):(rec.state==='idle'?'—':WTYPE[rec.type]+' · '+ACTIVITY[rec.activity]);
   renderHr();
@@ -1172,7 +1244,7 @@ async function startThreshold(kind){
    ════════════════════════════════════════════════════════════════════════════ */
 let rpeValue=null;
 function openFinishDialog(){
-  rpeValue=null;$('finish-notes').value='';$('finish-dlg').returnValue='';$('raw-wrap').hidden=!rec.raw.length;$('raw-dl').checked=false;
+  rpeValue=null;$('finish-notes').value='';$('finish-dlg').returnValue='';$('raw-wrap').hidden=!rec.raw.length;$('raw-dl').checked=false;$('pkg-wrap').hidden=!researchOn();$('pkg-dl').checked=true;
   $('rpe').innerHTML=RPE.map((_,i)=>i?`<button type="button" data-rpe="${i}">${i}</button>`:'').join('');$('rpe-label').textContent='Sin evaluar';
   $$('#rpe button').forEach(b=>b.onclick=()=>{rpeValue=Number(b.dataset.rpe);$$('#rpe button').forEach(x=>x.classList.toggle('is-active',x===b));$('rpe-label').textContent=rpeValue+' · '+RPE[rpeValue]});
   const all=rec.calc.map(p=>p.smo2);
@@ -1185,7 +1257,9 @@ $('finish-dlg').addEventListener('close',()=>{
   const v=$('finish-dlg').returnValue;
   if(v==='save'){const s=buildSession(rpeValue,$('finish-notes').value.trim());db.sessions.unshift(s);
     if(!saveDb()){s.calc=s.calc.filter((_,i)=>i%2===0);if(!saveDb()){db.sessions.shift();toast('No se pudo guardar la sesión.','error');return}}
-    if($('raw-dl').checked)exportRawIfAny(s);resetRecorder();refreshAll();toast('Sesión guardada.','ok');openReport(s.id);
+    if($('raw-dl').checked)exportRawIfAny(s);
+    if(researchOn()&&$('pkg-dl').checked){const pk=researchPackage(s);download(`rhx_${slug(pk.participant.code)}_${s.date.slice(0,16).replace(/[:T]/g,'-')}.json`,JSON.stringify(pk),'application/json');toast('Paquete de investigación descargado.','ok')}
+    resetRecorder();refreshAll();toast('Sesión guardada.','ok');openReport(s.id);
     if(s.threshold)renderThresholdResult();
   }else if(v==='discard'){if(confirm('¿Descartar la sesión sin guardar?')){resetRecorder();toast('Sesión descartada.')}else $('finish-dlg').showModal()}
   else{$('finish-dlg').returnValue='';$('finish-dlg').showModal()}
@@ -1202,7 +1276,7 @@ function renderUsers(){
   const u=activeUser(),chip=$('user-chip');chip.querySelector('span').textContent=u?u.name:'Sin deportista';chip.classList.toggle('on',!!u);
 }
 function fillUserForm(u){const f=$('user-form');f.reset();$('user-form-title').textContent=u?'Editar deportista':'Nuevo deportista';if(!u){f.id.value='';return}
-  ['id','name','birth','sex','weight','height','fat','sport','level','muscle','side','evaluator','notes'].forEach(k=>{if(f[k])f[k].value=u[k]??''})}
+  ['id','name','code','birth','sex','weight','height','fat','sport','level','muscle','side','evaluator','notes'].forEach(k=>{if(f[k])f[k].value=u[k]??''})}
 $('user-form').addEventListener('submit',e=>{
   e.preventDefault();const f=e.target,d=Object.fromEntries(new FormData(f).entries());
   d.name=d.name.trim();if(!d.name){toast('El nombre es obligatorio.','error');return}
@@ -1240,7 +1314,7 @@ function sessionCharts(s,tab,light){
   if(tab==='hr')return hs.length>1?chart({w:light?760:cw('sess-detail',900)-40,h:light?190:220,t,labels:true,light,aria:'FC de la sesión',series:[{data:hs.map(p=>[p.t,p.bpm]),dom:niceDomain(hs.map(p=>p.bpm),5,30),color:light?'#b0122f':'#eef2fa',width:2.2,fill:!light}]}):'<div class="empty"><span>Esta sesión no tiene FC.</span></div>';
   if(tab==='hb'){const hb=cs.filter(p=>fin(p.hbo2));if(hb.length<2)return'<div class="empty"><span>Sin datos de hemoglobina.</span></div>';const dom=niceDomain(hb.flatMap(p=>[p.hbo2,p.hhb,p.hbo2+p.hhb]),3,10);return chart({w:light?760:cw('sess-detail',900)-40,h:light?190:220,t,labels:true,light,aria:'Hemoglobina',series:[{data:hb.map(p=>[p.t,p.hbo2]),dom,color:'#e5484d',width:2},{data:hb.map(p=>[p.t,p.hhb]),dom,color:'#3b82f6',width:2},{data:hb.map(p=>[p.t,p.hbo2+p.hhb]),dom,color:'#8b5cf6',width:1.5,dash:'4 4'}]})}
   if(tab==='thr'&&s.threshold)return thresholdChart(s,light);
-  return chart({w:light?760:cw('sess-detail',900)-40,h:light?190:220,t,labels:true,labelsR:hs.length>1,light,aria:'SmO₂ de la sesión',zones:cs.map(p=>[p.t,p.zone]),marks:[...(s.laps||[]).map((l,i)=>({t:l.t,color:light?'#8a93a6':'#d6d8e0',dash:'2 4',width:1,label:'V'+(i+1)})),...(s.warmupAt!=null?[{t:s.warmupAt,color:'#00acff',dash:'4 3',width:1.2,label:'Calentado'}]:[])],series:[{data:cs.map(p=>[p.t,p.smo2]),dom:niceDomain(cs.map(p=>p.smo2),2,10),color:light?'#0d9a5b':'#22e984',width:2.4,fill:!light},{data:hs.map(p=>[p.t,p.bpm]),dom:niceDomain(hs.map(p=>p.bpm),5,30),color:light?'#b0122f':'#eef2fa',width:1.6}]});
+  return chart({w:light?760:cw('sess-detail',900)-40,h:light?190:220,t,labels:true,labelsR:hs.length>1,light,aria:'SmO₂ de la sesión',zones:cs.map(p=>[p.t,p.zone]),marks:[...(s.laps||[]).map((l,i)=>({t:l.t,color:light?'#8a93a6':'#d6d8e0',dash:'2 4',width:1,label:'V'+(i+1)})),...(s.warmupAt!=null?[{t:s.warmupAt,color:'#00acff',dash:'4 3',width:1.2,label:'Calentado'}]:[]),...(s.markers||[]).filter(m=>m.lac!=null).map(m=>({t:m.t,color:light?'#b0122f':'#ff8a9b',dash:'1 3',width:1,label:'La '+m.lac}))],series:[{data:cs.map(p=>[p.t,p.smo2]),dom:niceDomain(cs.map(p=>p.smo2),2,10),color:light?'#0d9a5b':'#22e984',width:2.4,fill:!light},{data:hs.map(p=>[p.t,p.bpm]),dom:niceDomain(hs.map(p=>p.bpm),5,30),color:light?'#b0122f':'#eef2fa',width:1.6}]});
 }
 function renderSessionDetail(s){
   const st=s.stats,zt=st.zoneSec,an=sessionAnalytics(s);
@@ -1256,7 +1330,9 @@ function renderSessionDetail(s){
   ${s.threshold?`<div style="margin-top:12px">${thresholdHtml(s.threshold)}</div>`:''}
   ${(()=>{const L=lapStats(s);return L.length?`<p class="label" style="margin-top:14px">Vueltas</p><div class="scroll-x">${lapTable(L)}</div>`:''})()}
   ${(()=>{const I=analyzeIntervals(s);return I.length>=2?`<p class="label" style="margin-top:14px">Esfuerzos y recuperaciones</p><div class="scroll-x">${intervalTable(I)}</div><p class="foot">${esc(fatigueNote(I))}</p>`:''})()}
-  ${s.warmupAt!=null?`<p class="foot">Calentamiento listo a los ${fmtTime(s.warmupAt)}.</p>`:''}`;
+  ${s.warmupAt!=null?`<p class="foot">Calentamiento listo a los ${fmtTime(s.warmupAt)}.</p>`:''}
+  ${s.markers?.length?`<p class="label" style="margin-top:14px">Muestras registradas</p><div class="scroll-x">${markerTable(s.markers)}</div>`:''}
+  ${dfaHtml(s.dfa)}${s.research?'<p class="foot"><span class="badge res">Modo investigación</span> El paquete completo se descargó al guardar.</p>':''}`;
   renderZoneDist($('hd-zbar'),$('hd-zones'),zt,true);
 }
 $('sess-list').addEventListener('click',e=>{const b=e.target.closest('[data-sid]');if(b){selectedSessionId=b.dataset.sid;renderHistory()}});
@@ -1330,6 +1406,8 @@ function reportHtml(s){
   ${s.threshold?`<h2>Prueba de umbral</h2><div class="rbox ${s.threshold.status==='ok'?'ok':'bad'}">${s.threshold.status==='ok'?`<b style="font-size:15px">${r1(s.threshold.intensity)} ${s.threshold.unit}${s.threshold.perKg?' · '+r1(s.threshold.perKg)+' W/kg':''}</b><br>Fase ${s.threshold.stage} · tiempo ${fmtTime(s.threshold.timeSec)} · SmO₂ ≈ ${r0(s.threshold.smo2)} %${s.threshold.hr?' · FC ≈ '+s.threshold.hr+' lpm':''} · método ${esc(s.threshold.method)}${redHtml(s.threshold.red,s.threshold.unit,u.weight)}${kineticsHtml(s.threshold.kin)}<span style="color:#5f6b7f">R²: SmO₂ ${s.threshold.r2.smo2?.toFixed(3)??'—'} · HbO₂ ${s.threshold.r2.hbo2?.toFixed(3)??'—'} · HHb ${s.threshold.r2.hhb?.toFixed(3)??'—'}</span>`:`<b>Ajuste bilineal no concluyente.</b> ${esc(s.threshold.reason)} No se informa umbral bilineal.${redHtml(s.threshold.red,s.threshold.unit,u.weight)}${kineticsHtml(s.threshold.kin)}`}</div><div class="rchart" style="margin-top:8px">${thresholdChart(s,true)}<div class="rlegend"><span style="--dot:#0d9a5b">SmO₂</span><span style="--dot:#d18a00">Ajuste bilineal</span><span style="--dot:#c8102e">Umbral</span></div></div>${stageTable}`:''}
   ${(()=>{const L=lapStats(s);return L.length?`<h2>Vueltas</h2>${lapTable(L)}<p style="font-size:10px;color:#5f6b7f">Mesetas: máximo y mínimo de la media móvil de 10 s dentro de cada vuelta.</p>`:''})()}
   ${(()=>{const I=analyzeIntervals(s);return I.length>=2?`<h2>Esfuerzos y recuperaciones</h2>${intervalTable(I)}<div class="rbox" style="margin-top:6px">${esc(fatigueNote(I))} <span style="color:#5f6b7f">Esfuerzo = zona 4–5 sostenida ≥10 s. T½ = segundos desde el valle hasta recuperar el 50 % hacia el pico de la recuperación.</span></div>`:''})()}
+  ${s.markers?.length?`<h2>Muestras registradas</h2>${markerTable(s.markers)}`:''}
+  ${dfaThresholds(s.dfa)?`<h2>Variabilidad de la FC (DFA‑α1)</h2>${dfaHtml(s.dfa)}<p style="font-size:10px;color:#5f6b7f">α1 ≈ 0,75 se asocia a VT1 y α1 ≈ 0,5 a VT2 (Rogers et al. 2021). Estimación experimental: requiere banda torácica con intervalos RR y baja tasa de artefactos.</p>`:''}
   <h2>Síntesis</h2><p>${esc(interpret(s))}${s.warmupAt!=null?` El calentamiento se completó a los ${fmtTime(s.warmupAt)} (la SmO₂ subió y se estabilizó).`:''}</p>
   <h2>Notas de interpretación</h2><ul style="margin:0;padding-left:16px;font-size:11px;color:#3b4456">
     <li>Valores de referencia de usuarios Hex: SmO₂ promedio 64 ± 10 %, máxima 72 ± 10 %, mínima 52 ± 17 %. Compara siempre con el propio historial del deportista.</li>
@@ -1420,6 +1498,8 @@ $('btn-connect').onclick=hexMainAction;$('set-connect').onclick=connectHex;
 $('conn-chip').onclick=()=>{if(rec.source==='demo'&&rec.state!=='idle'){showView('live');return}connectHex()};
 $('btn-demo').onclick=startDemo;
 $('btn-lap').onclick=markLap;
+document.querySelectorAll('[data-mk-save]').forEach(b=>b.onclick=()=>saveMarker(b.closest('[data-mk]')));
+$('research-on').onchange=e=>{db.settings.research=e.target.value==='1';saveDb();renderLive();toast(db.settings.research?'Modo investigación activado: al guardar se descargará el paquete completo.':'Modo investigación desactivado.','ok')};
 $('btn-big').onclick=()=>{$('bigview').hidden=false;renderBig();try{document.documentElement.requestFullscreen?.()}catch{}};
 $('bigview').onclick=()=>{$('bigview').hidden=true;try{document.fullscreenElement&&document.exitFullscreen()}catch{}};
 $('btn-voice').onclick=()=>{const on=!(db.settings.voice||{}).on;setVoice({on});if(on)speak('Avisos por voz activados',true);else try{speechSynthesis.cancel()}catch{}};
@@ -1438,7 +1518,7 @@ window.addEventListener('beforeunload',e=>{if(rec.state==='recording'||rec.state
 
 loadDb();
 $('ver').textContent=VERSION;$('zone-list').innerHTML=zoneListHtml();$('guide-zones').innerHTML=zoneListHtml();
-$('demo-speed').value=String(db.settings.demoSpeed);applyProtocolUi();renderVoiceUi();
+$('demo-speed').value=String(db.settings.demoSpeed);applyProtocolUi();renderVoiceUi();$('research-on').value=db.settings.research?'1':'0';
 if(!navigator.bluetooth){$('btn-connect').title=$('thr-start-hex').title='Este navegador no ofrece Bluetooth web';}
 setConn('Hex desconectado');updateButtons();renderUsers();
 showView(location.hash.slice(1)||'live');

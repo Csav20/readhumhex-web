@@ -40,6 +40,8 @@ Agrega todo lo que una evaluación necesita: **fichas de deportistas**, **prueba
 | 📊 **Progreso** | Entrenamientos #, tiempo de entrenamientos, entrenamientos/semana y tiempo/semana; puntuación y duración en el tiempo; SmO₂ mín./prom./máx. por sesión; evolución del umbral; distribución de zonas acumulada; tabla comparativa. |
 | 📄 **Informe** | Documento A4 listo para **imprimir o guardar en PDF**, con datos del deportista, resultados clave, gráficos, tabla de zonas, umbral con la curva ajustada, tabla de etapas, síntesis y firmas. También se descarga como **HTML, CSV o JSON**. |
 | ⚙️ **Dispositivos** | Hex y monitor de FC por separado; modelo, fabricante, número de serie, versiones de hardware y firmware; batería con aviso al 10 %; estado y calibración del Hex; tasa de paquetes por característica BLE; diagnóstico exportable; respaldo e importación de todos los datos. |
+| 🔬 **Modo investigación** | Captura completa del Hex a ~4 Hz (HHb, HbO₂, SmO₂, **zona del firmware**, **señal cruda RAW** con hora de llegada), **intervalos RR** de la banda, **muestras de lactato, VO₂, VE, RER** marcadas en el tiempo, y descarga de un **paquete anónimo .json** por código de participante. Se analiza con los scripts de [`analysis/`](analysis/). |
+| ❤️ **DFA‑α1** | Desde los intervalos RR: α1 en vivo y FC en α1 = 0,75 (≈VT1) y 0,5 (≈VT2), rotulado como experimental. |
 | 🧪 **Modo demo** | Datos simulados (siempre rotulados como tales) a 1×–20× de velocidad para probar todo sin sensor, incluso en iPhone. |
 
 <div align="center">
@@ -125,6 +127,20 @@ flowchart LR
 - **Criterio de aceptación:** R² del modelo bilineal ≥ 0,95 para SmO₂ y pendiente posterior más negativa. **Respaldo:** HbO₂ (R² ≥ 0,76, cae más) y HHb (R² ≥ 0,26, sube más), con quiebres a menos de una etapa entre sí.
 - Se requieren al menos 3 fases completas (configurable).
 - Si nada pasa el criterio, la app **no entrega un número**: un umbral con mal ajuste sería engañoso.
+
+---
+
+## 🧭 Hoja de investigación abierta
+
+El algoritmo de zonas del firmware del Hex **nunca se publicó**. La estrategia es reconstruirlo y mejorarlo de forma abierta y verificable:
+
+1. **Capturar**: modo investigación, datos completos y anónimos.
+2. **Reproducir el firmware**: modelo abierto de zonas desde HHb, HbO₂ y SmO₂ (`analysis/02_modelo_zonas.py`).
+3. **Validar contra estándar de oro**: lactato capilar y CPET, con test–retest (`analysis/03_umbrales_vs_referencia.py`).
+4. **Explorar**: ¿hay pulso cardíaco en la señal cruda a ~4 Hz? (`analysis/04_fc_desde_raw.py`). En teoría solo bajo 120 lpm (límite de Nyquist).
+5. **Publicar**: código, algoritmo y artículo; cada métrica de la app con su nivel de evidencia.
+
+Ver el protocolo piloto en [`analysis/README.md`](analysis/README.md).
 
 ---
 
@@ -232,6 +248,9 @@ ReadHumHex es un **cliente independiente**, sin afiliación con Humon ni con Dyn
 - [ ] Varios Hex simultáneos (bilateral o multimúsculo)
 - [x] Vueltas, tendencia, calentamiento, voz y vista grande
 - [x] Umbral por inicio de zona roja y cinética de recuperación
+- [x] Modo investigación, DFA‑α1, muestras de lactato y VO₂, scripts de análisis
+- [ ] Modelo abierto de zonas validado
+- [ ] Lactato estimado calibrado por deportista
 - [ ] GPS (distancia, ritmo, mapa)
 - [ ] Exportar TCX/GPX e importar FIT
 - [ ] Integración con potenciómetro BLE (Cycling Power 0x1818)
@@ -279,4 +298,4 @@ Si ReadHumHex te resulta útil en tu laboratorio, club o investigación, puedes 
 
 © 2026 Claudio Abarca Vargas. Todos los derechos reservados. Ver [`LICENSE`](LICENSE).
 
-Versión 1.2.0 · 2026‑11‑02
+Versión 1.3.0 · 2026‑11‑02
