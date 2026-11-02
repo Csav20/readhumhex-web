@@ -34,8 +34,9 @@ Agrega todo lo que una evaluación necesita: **fichas de deportistas**, **prueba
 |---|---|
 | 👤 **Deportista** | Fichas con nombre, edad, sexo, peso, talla, deporte, nivel, músculo y lado evaluado, evaluador y observaciones. Cada sesión queda asociada al deportista activo. |
 | 📡 **En vivo** | Actividad (Correr, Bicicleta, Remo, Otro) y tipo (Intervalo, Resistencia, Prueba de umbral). SmO₂ sin decimales, HbO₂, HHb y tHb en tiempo real; zona del Hex; FC de banda externa; gráfico de 5 min con zonas de fondo; tiempo en cada zona. |
-| 📈 **Umbral** | Prueba guiada en bicicleta estática (30 W + 30 W) o cinta (5 km/h + 1 km/h), fases de 3 min hasta el agotamiento voluntario y 3 min de recuperación. Estima el umbral con un **ajuste bilineal de dos segmentos**; si el ajuste no es confiable, declara la prueba **no concluyente**. |
-| 🗂️ **Historial** | Por sesión: **Puntuación**, **Esfuerzo** (0–4 puntos), **Consejo**, rango mín./promedio/máx., distribución de zonas, gráficos de oxígeno muscular, hemoglobina y ritmo cardíaco, percepción del entrenamiento (1–10) y notas. |
+| 🔊 **En la sesión** | **Tendencia** de SmO₂ (↑ → ↓), aviso de **calentamiento listo**, **vueltas** (botón o tecla V) con SmO₂ máx. y mesetas, **vista grande** de SmO₂ a pantalla completa y **avisos por voz** (zona, SmO₂, tendencia, FC, fases; cada 1, 5 o 10 min). |
+| 📈 **Umbral** | Prueba guiada en bicicleta estática (30 W + 30 W) o cinta (5 km/h + 1 km/h), fases de 3 min hasta el agotamiento voluntario y 3 min de recuperación. Estima el umbral con dos métodos: **ajuste bilineal de dos segmentos** (declara la prueba **no concluyente** si el ajuste es pobre) e **inicio de zona roja sostenida**, que según la validación del Hex corresponde a ~4 mmol/L de lactato (±21 W). Informa la **cinética de recuperación**: caída, T½ y sobreimpulso. |
+| 🗂️ **Historial** | Por sesión: **Puntuación**, **Esfuerzo** (0–4 puntos), **Consejo**, rango mín./promedio/máx., distribución de zonas, gráficos de oxígeno muscular, hemoglobina y ritmo cardíaco, percepción del entrenamiento (1–10) y notas. Tablas de **vueltas** y de **esfuerzos y recuperaciones** (valle, pico, magnitud, T½), con aviso automático de **fatiga muscular** si la recuperación se alarga o el pico baja. |
 | 📊 **Progreso** | Entrenamientos #, tiempo de entrenamientos, entrenamientos/semana y tiempo/semana; puntuación y duración en el tiempo; SmO₂ mín./prom./máx. por sesión; evolución del umbral; distribución de zonas acumulada; tabla comparativa. |
 | 📄 **Informe** | Documento A4 listo para **imprimir o guardar en PDF**, con datos del deportista, resultados clave, gráficos, tabla de zonas, umbral con la curva ajustada, tabla de etapas, síntesis y firmas. También se descarga como **HTML, CSV o JSON**. |
 | ⚙️ **Dispositivos** | Hex y monitor de FC por separado; modelo, fabricante, número de serie, versiones de hardware y firmware; batería con aviso al 10 %; estado y calibración del Hex; tasa de paquetes por característica BLE; diagnóstico exportable; respaldo e importación de todos los datos. |
@@ -62,6 +63,7 @@ Contenido y cálculos verificados contra la app oficial de Android (versión 1.1
 | Esfuerzo y consejo | Mismos cortes de fracción por zona (recuperación > 14 %, estable > 73 %, aproximándose > 8 %, límite > 5 %) para 0–4 puntos y 16 casos de consejo (textos propios). |
 | Percepción | Escala 1–10 al terminar el entrenamiento, más notas. |
 | Batería | Aviso de batería baja al 10 %. |
+| Muestreo | El Hex entrega datos calculados a ~4 Hz (confirmado por la validación publicada). |
 | FC | Siempre desde un segundo periférico (monitor de FC Bluetooth); el Hex no la mide. |
 
 ReadHumHex usa su propia marca, logotipo y redacción. No incluye código, imágenes ni textos de la app oficial.
@@ -123,6 +125,24 @@ flowchart LR
 - **Criterio de aceptación:** R² del modelo bilineal ≥ 0,95 para SmO₂ y pendiente posterior más negativa. **Respaldo:** HbO₂ (R² ≥ 0,76, cae más) y HHb (R² ≥ 0,26, sube más), con quiebres a menos de una etapa entre sí.
 - Se requieren al menos 3 fases completas (configurable).
 - Si nada pasa el criterio, la app **no entrega un número**: un umbral con mal ajuste sería engañoso.
+
+---
+
+## 🔬 Base científica
+
+La validación del Hex frente a un oxímetro de referencia de dominio de frecuencia (Farzam et al., *Physiological Reports* 2018; 17 deportistas, rampa en cicloergómetro) informó:
+
+| Resultado | Valor | Uso en ReadHumHex |
+|---|---|---|
+| Concordancia de SmO₂ | r = 0,86; error 3,4 % | Variable principal |
+| Concordancia de HbO₂, HHb, tHb | error 19–26 % | Se interpretan como tendencias |
+| Inicio de zona roja vs. lactato 4 mmol/L | error medio ±21 W; ~2,5 min de retraso | Segundo método de umbral |
+| Caída de SmO₂ en la rampa | 12 ± 6 % | Referencia en el informe |
+| T½ de recuperación | 123 ± 40 s | Referencia en el informe |
+| Sobreimpulso en la recuperación | 8 ± 5 % | Referencia en el informe |
+| Grasa subcutánea | más grasa atenúa la caída (r = 0,65) | Campo opcional de pliegue y advertencia |
+
+Fuente: [Farzam P, Starkweather Z, Franceschini MA. Physiol Rep. 2018;6(7):e13664](https://pmc.ncbi.nlm.nih.gov/articles/PMC5880957).
 
 ---
 
@@ -210,7 +230,10 @@ ReadHumHex es un **cliente independiente**, sin afiliación con Humon ni con Dyn
 - [x] Informe A4 (PDF/HTML) y exportación CSV/JSON
 - [x] Modo demostración
 - [ ] Varios Hex simultáneos (bilateral o multimúsculo)
-- [ ] Marcadores de evento durante la sesión
+- [x] Vueltas, tendencia, calentamiento, voz y vista grande
+- [x] Umbral por inicio de zona roja y cinética de recuperación
+- [ ] GPS (distancia, ritmo, mapa)
+- [ ] Exportar TCX/GPX e importar FIT
 - [ ] Integración con potenciómetro BLE (Cycling Power 0x1818)
 - [ ] Versión instalable (PWA) con funcionamiento sin conexión
 
@@ -256,4 +279,4 @@ Si ReadHumHex te resulta útil en tu laboratorio, club o investigación, puedes 
 
 © 2026 Claudio Abarca Vargas. Todos los derechos reservados. Ver [`LICENSE`](LICENSE).
 
-Versión 1.1.0 · 2026‑11‑02
+Versión 1.2.0 · 2026‑11‑02

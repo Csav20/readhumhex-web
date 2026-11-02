@@ -117,6 +117,17 @@ u{text-decoration:none;text-transform:none}
 .zones li strong{font-size:12px;color:var(--ink-2)}
 .zones li.active{background:var(--surface-3);border-color:#5a5c6b}
 .dots{display:inline-flex;gap:5px;vertical-align:middle}.dots i{width:13px;height:13px;border-radius:50%;border:2px solid var(--ink);display:block}.dots i.on{background:var(--ink)}.dots i.l{border-color:#1d2333}.dots i.l.on{background:#1d2333}
+.trend{display:block;font-style:normal;font-size:11px;font-weight:700;margin-top:2px;color:var(--muted)}.trend.up{color:var(--z2)}.trend.down{color:var(--z4)}
+.btn[aria-pressed="true"]{background:var(--surface-3);border-color:var(--z3);color:#fff}
+#bigview{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:radial-gradient(circle at 50% 40%,var(--bvc,#2d2f3d) 0,transparent 72%),#111425;color:#fff;text-align:center;padding:24px;cursor:pointer}
+#bigview .bv-zone{font-size:clamp(18px,4vw,30px);font-weight:700;letter-spacing:.08em;text-transform:uppercase}
+#bigview .bv-val{font-size:clamp(120px,34vw,340px);font-weight:700;line-height:.9;letter-spacing:-6px}
+#bigview .bv-val small{font-size:.25em;letter-spacing:0;margin-left:6px;color:#d6d8e0}
+#bigview .bv-trend{font-size:clamp(18px,4vw,28px);font-weight:600}
+#bigview .bv-row{display:flex;gap:32px;font-size:clamp(20px,5vw,40px);font-weight:700}
+#bigview .bv-sub{font-size:clamp(14px,3vw,20px);color:#d6d8e0}
+#bigview #big-close{position:absolute;top:14px;right:14px;border:1px solid #fff5;background:#0005;color:#fff;border-radius:50%;width:44px;height:44px;font-size:18px}
+table.mini{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}table.mini th,table.mini td{padding:6px 5px;border-bottom:1px solid var(--line);text-align:right;font-variant-numeric:tabular-nums}table.mini th{font-size:9px;text-transform:uppercase;color:var(--muted);letter-spacing:.05em}table.mini td:first-child,table.mini th:first-child{text-align:left}
 .zbar{display:flex;height:10px;border-radius:6px;overflow:hidden;background:var(--surface-3);margin-top:10px}
 .zbar i{display:block;height:100%}
 .tip{margin-top:12px;padding:11px 12px;border-left:3px solid var(--cyan);background:var(--surface-2);border-radius:0 7px 7px 0;font-size:12px;color:var(--ink-2)}
@@ -300,6 +311,7 @@ footer a{color:var(--muted)}
             <label class="field">Deporte / disciplina<input type="text" name="sport" maxlength="60" placeholder="Ciclismo, remo, triatlón…"></label>
             <label class="field">Nivel<select name="level"><option value="">—</option><option>Recreativo</option><option>Competitivo</option><option>Alto rendimiento</option><option>Paralímpico</option><option>Rehabilitación</option></select></label>
             <label class="field">Músculo evaluado<select name="muscle"><option value="">—</option><option>Vasto lateral</option><option>Recto femoral</option><option>Gastrocnemio</option><option>Bíceps braquial</option><option>Tríceps braquial</option><option>Deltoides</option><option>Otro</option></select></label>
+            <label class="field">Pliegue en el sitio del sensor (mm)<input type="number" name="fat" min="0" max="60" step="0.5" placeholder="Opcional · ej. 6"></label>
             <label class="field">Lado<select name="side"><option value="">—</option><option>Derecho</option><option>Izquierdo</option></select></label>
             <label class="field full">Evaluador / institución<input type="text" name="evaluator" maxlength="100" placeholder="Nombre del evaluador · laboratorio"></label>
             <label class="field full">Observaciones<textarea name="notes" rows="2" maxlength="400" placeholder="Lesiones, objetivos, medicación relevante para la prueba…"></textarea></label>
@@ -319,6 +331,7 @@ footer a{color:var(--muted)}
           <button class="btn primary" id="btn-connect">Conectar Hex</button>
           <button class="btn" id="btn-demo">Modo demo</button>
           <label class="btn" for="csv-input">Importar CSV</label><input class="hidden-input" id="csv-input" type="file" accept=".csv,text/csv,.txt">
+          <button class="btn" id="btn-lap" disabled title="Marca una vuelta (tecla V)">Vuelta</button><button class="btn" id="btn-big" title="Pantalla grande de SmO₂">Vista %</button><button class="btn" id="btn-voice" aria-pressed="false" title="Avisos por voz">🔈 Voz</button>
           <button class="btn" id="btn-pause" disabled>Pausar</button>
           <button class="btn danger" id="btn-finish" disabled>Finalizar</button>
         </div>
@@ -328,14 +341,14 @@ footer a{color:var(--muted)}
 
       <div class="live-top">
         <article class="panel ring-card">
-          <div class="ring" id="ring"><div><strong id="v-smo2">—</strong><small>SmO₂ %</small></div></div>
+          <div class="ring" id="ring"><div><strong id="v-smo2">—</strong><small>SmO₂ %</small><em class="trend" id="v-trend"></em></div></div>
           <div><p class="label">Oxígeno muscular</p><h2 id="zone-name">Esperando datos</h2><p id="zone-desc">La lectura aparece al recibir el primer paquete del sensor.</p>
             <dl class="hb-row"><div><dt>HbO₂ <u>µM</u></dt><dd id="v-hbo2">—</dd></div><div><dt>HHb <u>µM</u></dt><dd id="v-hhb">—</dd></div><div><dt>tHb <u>µM</u></dt><dd id="v-thb">—</dd></div></dl>
           </div>
         </article>
         <article class="panel"><p class="label">Frecuencia cardíaca</p><p class="big" id="v-hr">—<small>lpm</small></p><p class="foot" id="hr-src">Sin banda de FC. El Hex no mide FC.</p><button class="btn sm" id="btn-hr" style="margin-top:10px">Conectar banda FC</button></article>
         <article class="panel"><p class="label">Zona</p><p class="big" id="v-zone">—<small>/ 5</small></p><div class="zone-scale"><i id="zone-marker"></i></div><p class="foot" id="zone-label">Sin lectura</p></article>
-        <article class="panel"><p class="label">Tiempo de sesión</p><p class="big" id="v-time">00:00</p><p class="foot" id="v-intensity">—</p><p class="foot" id="v-speed"></p></article>
+        <article class="panel"><p class="label">Tiempo de sesión</p><p class="big" id="v-time">00:00</p><p class="foot" id="v-intensity">—</p><p class="foot" id="v-lap"></p><p class="foot" id="v-warm"></p><p class="foot" id="v-speed"></p></article>
       </div>
 
       <div class="live-grid">
@@ -461,6 +474,12 @@ footer a{color:var(--muted)}
           <div><span>STATE · 0000abc0</span><b id="rate-abc0">—</b></div>
           <div><span>CMD · 0000abcd</span><b id="rate-abcd">—</b></div>
         </div><p class="foot" id="rate-verdict">RAW sin datos.</p><button class="btn sm" id="btn-diag" style="margin-top:10px">Exportar diagnóstico BLE</button></article>
+        <article class="panel"><div class="ph"><div><h2>Avisos por voz</h2><p>Habla mientras grabas: zona, SmO₂, tendencia y FC.</p></div></div>
+          <div class="form" style="grid-template-columns:1fr 1fr">
+            <label class="field">Activar<select id="voice-on"><option value="0">Desactivados</option><option value="1">Activados</option></select></label>
+            <label class="field">Frecuencia<select id="voice-every"><option value="1">Cada minuto</option><option value="5">Cada 5 minutos</option><option value="10">Cada 10 minutos</option><option value="0">Solo eventos</option></select></label>
+            <label class="field full"><span><input type="checkbox" id="voice-zones"> Anunciar cambios de zona, fases, calentamiento y vueltas</span></label>
+          </div><button class="btn sm" id="voice-test" style="margin-top:8px">Probar voz</button></article>
         <article class="panel"><div class="ph"><div><h2>Modo demostración</h2><p>Datos simulados, siempre rotulados como demo.</p></div></div>
           <label class="field">Velocidad de simulación<select id="demo-speed"><option value="1">Tiempo real (1×)</option><option value="5">5×</option><option value="10">10×</option><option value="20">20×</option></select></label>
           <p class="foot">Con 10×, una prueba incremental de 8 etapas toma unos 2,5 minutos.</p></article>
@@ -477,7 +496,7 @@ footer a{color:var(--muted)}
       <div class="grid g2">
         <article class="panel"><h3>1 · Prepara</h3><ul><li>Abre esta página en <b>Chrome o Edge</b> (computador o Android).</li><li>Crea la ficha del deportista en <b>Deportista</b> (nombre, peso, músculo evaluado).</li><li>Enciende el Hex (luz roja parpadeante) y colócalo en el muslo, sobre el vientre muscular, ajustado con la banda y protegido de la luz.</li></ul></article>
         <article class="panel"><h3>2 · Conecta</h3><ul><li><b>Conectar Hex</b> abre el selector Bluetooth del navegador. Elige tu Hex.</li><li>«Calibrando…» El Hex se calibra en cada colocación (oscuridad y luego potencia del LED). <b>No muevas el Hex.</b></li><li>Opcional: <b>Conectar banda FC</b> para sumar la frecuencia cardíaca de una banda torácica.</li></ul></article>
-        <article class="panel"><h3>3 · Entrena o evalúa</h3><ul><li>Elige la actividad (Correr, Bicicleta, Remo u Otro) y el tipo: <b>Intervalo</b> para esfuerzos de alta intensidad de menos de 2 min; <b>Resistencia</b> para todo lo demás. Así las zonas se determinan correctamente.</li><li>La grabación empieza sola cuando el Hex queda activo.</li><li><b>Prueba de umbral</b> (bicicleta estática o cinta): pestaña <b>Umbral</b>. La app guía las fases de 3 min y la recuperación final, y calcula el quiebre de SmO₂.</li><li><b>Pausar</b> solo detiene la grabación. El sensor sigue calibrado.</li></ul></article>
+        <article class="panel"><h3>3 · Entrena o evalúa</h3><ul><li>Elige la actividad (Correr, Bicicleta, Remo u Otro) y el tipo: <b>Intervalo</b> para esfuerzos de alta intensidad de menos de 2 min; <b>Resistencia</b> para todo lo demás. Así las zonas se determinan correctamente.</li><li>La grabación empieza sola cuando el Hex queda activo. La app avisa cuando el <b>calentamiento está listo</b> (la SmO₂ subió y se estabilizó) y muestra la <b>tendencia</b> (↑ sube, → estable, ↓ baja).</li><li><b>Vuelta</b> (o tecla <b>V</b>) marca tramos con su SmO₂ máxima y sus mesetas. <b>Vista %</b> muestra la SmO₂ a pantalla completa, para verla desde la bicicleta o la cinta. <b>🔈 Voz</b> anuncia zona, SmO₂, tendencia y FC.</li><li><b>Prueba de umbral</b> (bicicleta estática o cinta): pestaña <b>Umbral</b>. La app guía las fases de 3 min y la recuperación final, y calcula el quiebre de SmO₂.</li><li><b>Pausar</b> solo detiene la grabación. El sensor sigue calibrado.</li></ul></article>
         <article class="panel"><h3>4 · Revisa e informa</h3><ul><li><b>Finalizar</b> pide la percepción del entrenamiento (1–10) y notas, y guarda la sesión con su <b>puntuación</b>, <b>esfuerzo</b> y <b>consejo</b>.</li><li><b>Informe</b> genera un documento imprimible (PDF) con los datos del deportista, gráficos, zonas y umbral.</li><li>Exporta CSV para Excel, R o Python, o haz un respaldo .json completo.</li></ul></article>
         <article class="panel"><h3>Zonas de oxigenación</h3><p>Representan el equilibrio entre oferta y demanda de oxígeno en el músculo. Las calcula el Hex, relativas a la calibración de cada colocación.</p><ol class="zones" id="guide-zones"></ol></article>
         <article class="panel"><h3>Entrenar con oxígeno muscular</h3><ul>
@@ -505,6 +524,7 @@ footer a{color:var(--muted)}
   </footer>
 </div>
 
+<div id="bigview" hidden role="dialog" aria-label="Vista grande de SmO₂"><button id="big-close" aria-label="Cerrar">✕</button><div class="bv-zone" id="bv-zone">—</div><div class="bv-val"><span id="bv-smo2">—</span><small>%</small></div><div class="bv-trend" id="bv-trend"></div><div class="bv-row"><span id="bv-hr">— lpm</span><span id="bv-time">00:00</span></div><div class="bv-sub" id="bv-int"></div></div>
 <dialog id="finish-dlg">
   <form method="dialog" id="finish-form">
     <div><p class="eyebrow">Terminar entrenamiento</p><h2>¿Cómo fue la sesión?</h2></div>
@@ -526,7 +546,7 @@ footer a{color:var(--muted)}
    Todo corre en el navegador: Web Bluetooth para los sensores, localStorage para
    los datos, SVG propio para los gráficos. Sin servidores ni dependencias.
    ════════════════════════════════════════════════════════════════════════════ */
-const VERSION='1.1.0';
+const VERSION='1.2.0';
 const $=id=>document.getElementById(id);
 const $$=(sel,root=document)=>[...root.querySelectorAll(sel)];
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -745,7 +765,7 @@ const rec={state:'idle',source:null,startedAt:null,elapsed:0,lastTick:0,speed:1,
 function currentIntensity(){const p=rec.protocol;if(!p)return null;
   if(p.stopAt!=null){const rs=(p.recMin??3)*60,el=rec.elapsed-p.stopAt;return{recovery:true,stage:'R',value:null,left:Math.max(0,rs-el),frac:rs?Math.min(1,el/rs):1}}
   const i=Math.floor(rec.elapsed/(p.stageMin*60));return{stage:i+1,value:p.start+p.step*i,left:p.stageMin*60-(rec.elapsed%(p.stageMin*60)),frac:(rec.elapsed%(p.stageMin*60))/(p.stageMin*60)}}
-function startRecoveryPhase(){const p=rec.protocol;if(!p||p.stopAt!=null||rec.state!=='recording')return;p.stopAt=+rec.elapsed.toFixed(1);
+function startRecoveryPhase(){const p=rec.protocol;if(!p||p.stopAt!=null||rec.state!=='recording')return;p.stopAt=+rec.elapsed.toFixed(1);voiceEvent('Recuperación. Baja la intensidad');
   if(!((p.recMin??3)>0)){finishRecording(true);return}
   toast('Recuperación: '+r1(p.recMin??3)+' min a intensidad muy baja. No retires el Hex.','ok');$('thr-msg').textContent='Fase de recuperación. Pedalea o camina muy suave.';updateButtons()}
 function protoUnit(p){return p&&p.mode==='run'?'km/h':'W'}
@@ -753,7 +773,7 @@ function beginRecording(source){
   if(rec.state==='recording')return;
   rec.state='recording';rec.source=source;rec.startedAt=new Date();rec.elapsed=0;rec.lastTick=performance.now();
   rec.speed=source==='demo'?Number(db.settings.demoSpeed)||1:1;
-  rec.calc=[];rec.hr=[];rec.raw=[];rec.zoneTime=[0,0,0,0,0,0];rec.last=null;stageAnnounced=0;
+  rec.calc=[];rec.hr=[];rec.raw=[];rec.zoneTime=[0,0,0,0,0,0];rec.last=null;stageAnnounced=0;rec.laps=[];rec.warmAt=null;rec.redSaid=false;voiceNextAt=0;voiceZone=null;voiceZoneSaid=null;
   rec.activity=$('activity').value;rec.type=$('wtype').value;
   rec.protocol=rec.type==='incremental'?{...readProtocol()}:null;
   if(source==='demo')demo.reset();
@@ -823,7 +843,7 @@ function buildSession(rpe,notes){
   const u=activeUser();
   const session={id:uid(),v:1,userId:u?.id||null,userName:u?.name||null,date:rec.startedAt.toISOString(),duration:+duration.toFixed(1),
     activity:rec.activity,type:rec.type,source:rec.source,device:rec.source==='hex'?{name:hex.device?.name||'Humon Hex',info:hex.info,...(hex.devInfo||{}),calibration:hex.calibration}:null,
-    protocol:rec.protocol,calc,hr,rpe,notes,stats:computeStats(calc,hr,duration),threshold:null};
+    protocol:rec.protocol,calc,hr,rpe,notes,laps:rec.laps.slice(),warmupAt:rec.warmAt,stats:computeStats(calc,hr,duration),threshold:null};
   if(session.type==='incremental'&&session.protocol)session.threshold=analyzeThreshold(session);
   return session;
 }
@@ -855,7 +875,7 @@ function analyzeThreshold(s){
   const completed=Math.floor((end||0)/stageSec);
   const recv=p.stopAt!=null?s.calc.filter(c=>c.t>p.stopAt):[],atStop=calc.filter(c=>c.t>=end-15).map(c=>c.smo2);
   const recovery=recv.length>5&&atStop.length?{secs:+(recv.at(-1).t-p.stopAt).toFixed(0),rise:Math.max(...recv.map(c=>c.smo2))-mean(atStop),max:Math.max(...recv.map(c=>c.smo2))}:null;
-  const base={method:null,unit,completed,protocol:p,recovery};
+  const red=redOnset(calc,end,stageSec,p),kin=recoveryKinetics(s);const base={method:null,unit,completed,protocol:p,recovery,red,kin};
   if(completed<(p.minStages||3))return{...base,status:'failed',reason:`Solo ${completed} fase(s) completa(s); se requieren al menos ${p.minStages||3}.`};
   const xs=calc.map(c=>c.t),minSeg=Math.max(20,Math.round(stageSec/2));
   const fS=bilinear(xs,calc.map(c=>c.smo2),minSeg);
@@ -881,11 +901,46 @@ function analyzeThreshold(s){
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
+   MÉTRICAS DERIVADAS
+   · Inicio de zona roja sostenida (≥30 s): en la validación del Hex (Farzam et al.,
+     Physiol Rep 2018) el inicio de la zona roja corresponde a 4 mmol/L de lactato;
+     error medio ±21 W y ~2,5 min de retraso en 14 deportistas.
+   · Cinética de recuperación tras el agotamiento: caída, T½ y sobreimpulso.
+   · Intervalos: valle de SmO₂ en el esfuerzo, pico y T½ de la recuperación
+     (duración y magnitud de la recuperación = signos de fatiga muscular).
+   · Vueltas: SmO₂ mín/prom/máx y mesetas superior e inferior (media móvil de 10 s).
+   ════════════════════════════════════════════════════════════════════════════ */
+function smoothSeries(calc,win){const out=[],q=[];let sum=0;for(const c of calc){q.push(c);sum+=c.smo2;while(q.length&&c.t-q[0].t>=win){sum-=q[0].smo2;q.shift()}out.push({t:c.t,v:sum/q.length})}return out}
+function redOnset(calc,end,stageSec,p){let st=null;for(const c of calc){if(c.t>end)break;if(zoneIdx(c.zone)===5){if(st==null)st=c.t;if(c.t-st>=30){const stage=Math.floor(st/stageSec);return{timeSec:st,stage:stage+1,intensity:p.start+p.step*stage}}}else st=null}return null}
+function recoveryKinetics(s){const p=s.protocol;if(!p||p.stopAt==null)return null;const stop=p.stopAt,base=s.stats.smo2.baseline;
+  const pre=s.calc.filter(c=>c.t<=stop&&c.t>stop-15).map(c=>c.smo2),post=s.calc.filter(c=>c.t>stop);if(!pre.length||post.length<10||!fin(base))return null;
+  const low=mean(pre),drop=base-low,peak=Math.max(...post.map(c=>c.smo2)),half=drop>0?post.find(c=>c.smo2>=low+0.5*drop):null;
+  return{base,low,drop,peak,overshoot:peak-base,halfSec:half?Math.round(half.t-stop):null,secs:Math.round(post.at(-1).t-stop)}}
+function analyzeIntervals(s){const c=s.calc;if(c.length<60)return[];const segs=[];let cur=null;
+  for(const p of c){if(zoneIdx(p.zone)>=4){if(cur&&p.t-cur.end<=5)cur.end=p.t;else{cur={start:p.t,end:p.t};segs.push(cur)}}}
+  const eff=segs.filter(g=>g.end-g.start>=10),limit=s.protocol?.stopAt??s.duration,out=[];
+  eff.forEach((g,i)=>{if(g.start>limit)return;const next=Math.min(eff[i+1]?.start??limit,limit),work=c.filter(p=>p.t>=g.start&&p.t<=g.end+10),rc=c.filter(p=>p.t>g.end&&p.t<next);if(!work.length)return;
+    const valley=Math.min(...work.map(p=>p.smo2)),vt=work.find(p=>p.smo2===valley).t,peak=rc.length?Math.max(...rc.map(p=>p.smo2)):null;
+    const h=peak!=null&&peak>valley?rc.find(p=>p.t>=vt&&p.smo2>=valley+0.5*(peak-valley)):null;
+    out.push({n:out.length+1,start:g.start,dur:g.end-g.start,valley,peak,recDur:Math.max(0,next-g.end),halfSec:h?Math.round(h.t-vt):null})});return out}
+function fatigueNote(iv){const v=iv.filter(x=>x.halfSec!=null&&x.peak!=null);if(v.length<3)return'';const a=v[0],b=v.at(-1),o=[];
+  if(b.halfSec-a.halfSec>=10)o.push(`la recuperación tardó ${Math.round(b.halfSec-a.halfSec)} s más en el último intervalo que en el primero`);
+  if(a.peak-b.peak>=3)o.push(`el pico de SmO₂ en la recuperación bajó ${r1(a.peak-b.peak)} pts`);
+  return o.length?'Posible fatiga muscular: '+o.join(' y ')+'.':'Recuperación estable entre intervalos: sin signos claros de fatiga.'}
+function lapStats(s){const laps=s.laps||[];if(!laps.length)return[];const b=[0,...laps.map(l=>l.t),s.duration],out=[];
+  for(let i=0;i<b.length-1;i++){const seg=s.calc.filter(c=>c.t>=b[i]&&c.t<b[i+1]);if(seg.length<3)continue;const sm=smoothSeries(seg,10).map(x=>x.v),v=seg.map(c=>c.smo2),hr=s.hr.filter(h=>h.t>=b[i]&&h.t<b[i+1]).map(h=>h.bpm),zc=[0,0,0,0,0,0];seg.forEach(c=>zc[zoneIdx(c.zone)]++);
+    out.push({n:i+1,start:b[i],dur:b[i+1]-b[i],min:Math.min(...v),avg:mean(v),max:Math.max(...v),plHi:Math.max(...sm),plLo:Math.min(...sm),hr:hr.length?mean(hr):null,zone:[2,3,4,5].sort((x,y)=>zc[y]-zc[x])[0]})}return out}
+function lapTable(laps){if(!laps.length)return'';return`<table class="mini"><thead><tr><th>Vuelta</th><th>Duración</th><th>Mín.</th><th>Prom.</th><th>Máx.</th><th>Meseta sup.</th><th>Meseta inf.</th><th>FC</th><th>Zona</th></tr></thead><tbody>${laps.map(l=>`<tr><td>${l.n}</td><td>${fmtTime(l.dur)}</td><td>${r0(l.min)}</td><td>${r0(l.avg)}</td><td>${r0(l.max)}</td><td>${r1(l.plHi)}</td><td>${r1(l.plLo)}</td><td>${l.hr?r0(l.hr):'—'}</td><td style="color:${ZONES[l.zone].color}">${ZONES[l.zone].short}</td></tr>`).join('')}</tbody></table>`}
+function intervalTable(iv){if(!iv.length)return'';return`<table class="mini"><thead><tr><th>Esfuerzo</th><th>Inicio</th><th>Duración</th><th>Valle SmO₂</th><th>Pico recup.</th><th>Magnitud</th><th>T½ recup.</th><th>Recuperación</th></tr></thead><tbody>${iv.map(x=>`<tr><td>${x.n}</td><td>${fmtTime(x.start)}</td><td>${fmtTime(x.dur)}</td><td>${r1(x.valley)}</td><td>${x.peak!=null?r1(x.peak):'—'}</td><td>${x.peak!=null?'+'+r1(x.peak-x.valley):'—'}</td><td>${x.halfSec!=null?x.halfSec+' s':'—'}</td><td>${fmtTime(x.recDur)}</td></tr>`).join('')}</tbody></table>`}
+function kineticsHtml(k){if(!k)return'';return`<p>Recuperación tras el agotamiento: caída ${r1(k.drop)} pts · T½ ${k.halfSec!=null?k.halfSec+' s':'no alcanzado'} · sobreimpulso ${k.overshoot>=0?'+':''}${r1(k.overshoot)} pts <span class="note">(referencia Hex: caída 12 ± 6 %, T½ 123 ± 40 s, sobreimpulso 8 ± 5 %)</span></p>`}
+function redHtml(r,unit,w){if(!r)return'<p>Inicio de zona roja: no se sostuvo ≥30 s durante la prueba.</p>';return`<p><b>Inicio de zona roja</b> (≈ 4 mmol/L de lactato): ${r1(r.intensity)} ${unit}${unit==='W'&&w?` · ${r1(r.intensity/w)} W/kg`:''} · fase ${r.stage} · ${fmtTime(r.timeSec)} <span class="note">(error esperado ±21 W)</span></p>`}
+
+/* ════════════════════════════════════════════════════════════════════════════
    MODO DEMOSTRACIÓN — modelo simple, rotulado siempre como simulado
    SmO₂ responde a la intensidad con una cinética de primer orden y un quiebre
    por encima de un umbral de referencia; FC con su propia cinética.
    ════════════════════════════════════════════════════════════════════════════ */
-const demo={smo2:74,hr:68,phase:0,acc:0,lt:210,reset(){const w=activeUser()?.weight||70;this.lt=Math.round(w*3)/1;this.smo2=74+gauss()*0.5;this.hr=66+gauss()*2;this.acc=0;this.hrAcc=0}};
+const demo={smo2:74,hr:68,phase:0,acc:0,lt:210,reset(){const w=activeUser()?.weight||70;this.lt=Math.round(w*3)/1;this.smo2=(rec.protocol?74:65)+gauss()*0.5;this.hr=66+gauss()*2;this.acc=0;this.hrAcc=0}};
 function gauss(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
 function demoIntensity(t){
   const lt=demo.lt;
@@ -895,14 +950,15 @@ function demoIntensity(t){
 }
 function demoStep(dt){
   const t=rec.elapsed,P=demoIntensity(t),lt=demo.lt;
-  const target=P<=lt?74-0.045*P:74-0.045*lt-0.16*(P-lt);
-  demo.smo2+=(target-demo.smo2)*(1-Math.exp(-dt/22));
+  const target=(P<=lt?74-0.045*P:74-0.045*lt-0.16*(P-lt))-(rec.protocol?0:9*Math.exp(-t/110));
+  const ci0=rec.protocol?currentIntensity():null,over=ci0?.recovery?7*Math.exp(-Math.max(0,t-rec.protocol.stopAt-60)/150):0,tgt=target+over;
+  demo.rising=tgt>demo.smo2+1.5;demo.smo2+=(tgt-demo.smo2)*(1-Math.exp(-dt/(demo.rising?75:22)));
   const hrT=Math.min(198,62+0.5*P*(210/lt)+(rec.protocol?0:0.02*t/60));
   demo.hr+=(hrT-demo.hr)*(1-Math.exp(-dt/28));
   demo.acc+=dt;
   while(demo.acc>=0.5){demo.acc-=0.5;
     const s=clamp(demo.smo2+gauss()*0.45,8,92),thb=96+0.025*P+gauss()*0.6,hbo2=thb*s/100,hhb=thb-hbo2;
-    const d=74-s,zone=d<4?2:d<12?3:d<20?4:5;
+    const d=74-s,zone=(!rec.protocol&&t<200)?2:demo.rising?2:d<3?2:d<9?3:d<12?4:5;
     pushSample({smo2:s,hbo2,hhb,zone},'demo',Math.max(0,rec.elapsed-demo.acc));
   }
   demo.hrAcc=(demo.hrAcc||0)+dt;while(demo.hrAcc>=1){demo.hrAcc-=1;pushHr(demo.hr+gauss()*1.2,'demo',Math.max(0,rec.elapsed-demo.hrAcc))}
@@ -916,6 +972,38 @@ function startDemo(){
   setTimeout(()=>{if(rec.state==='armed')beginRecording('demo')},1500);
 }
 
+/* ── Tendencia de SmO₂ (pendiente de los últimos 20 s) ─────────────────────── */
+function trendInfo(win=20){const t1=rec.elapsed,pts=rec.calc.filter(c=>c.t>=t1-win);if(pts.length<5)return null;
+  const n=pts.length,mx=mean(pts.map(c=>c.t)),my=mean(pts.map(c=>c.smo2));let sxy=0,sxx=0;pts.forEach(c=>{sxy+=(c.t-mx)*(c.smo2-my);sxx+=(c.t-mx)**2});
+  const m=sxx?sxy/sxx:0,perMin=m*60;return perMin>2.4?{dir:'up',arrow:'↑',text:'Sube',perMin}:perMin<-2.4?{dir:'down',arrow:'↓',text:'Baja',perMin}:{dir:'flat',arrow:'→',text:'Estable',perMin}}
+/* ── Avisos por voz (Web Speech API) ───────────────────────────────────────── */
+const ZONE_COLOR_WORD={2:'azul',3:'verde',4:'naranja',5:'roja'};
+function speak(text,force){const v=db.settings.voice||{};if(!force&&(!v.on||rec.state!=='recording'))return;if(!('speechSynthesis' in window))return;
+  try{const u=new SpeechSynthesisUtterance(text);u.lang='es-ES';const vs=speechSynthesis.getVoices().filter(x=>/^es/i.test(x.lang));u.voice=vs.find(x=>/CL|419|MX|US/.test(x.lang))||vs[0]||null;u.rate=1.05;if(speechSynthesis.speaking&&speechSynthesis.pending)speechSynthesis.cancel();speechSynthesis.speak(u)}catch{}}
+function voiceEvent(text){if((db.settings.voice||{}).zones!==false)speak(text)}
+let voiceNextAt=0,voiceZone=null,voiceZoneSince=0,voiceZoneSaid=null;
+function voiceTick(){const v=db.settings.voice||{};if(!v.on||rec.state!=='recording'||!rec.last)return;
+  const z=zoneIdx(rec.last.zone);if(z!==voiceZone){voiceZone=z;voiceZoneSince=rec.elapsed}
+  if(z>=2&&z!==voiceZoneSaid&&rec.elapsed-voiceZoneSince>=8){voiceZoneSaid=z;voiceEvent('Zona '+ZONE_COLOR_WORD[z])}
+  const every=Number(v.every)||0;if(every&&rec.elapsed>=voiceNextAt){voiceNextAt=(Math.floor(rec.elapsed/(every*60))+1)*every*60;if(rec.elapsed<20)return;
+    const tr=trendInfo(),hr=hex.hr&&Date.now()-(hex.hrAt||0)<6000?hex.hr:null;
+    speak(`Minuto ${Math.round(rec.elapsed/60)}. Oxígeno muscular ${Math.round(rec.last.smo2)} por ciento${tr?', '+tr.text.toLowerCase():''}. Zona ${ZONE_COLOR_WORD[z]||'sin clasificar'}${hr?'. Frecuencia cardíaca '+hr:''}.`)}}
+function renderVoiceUi(){const v=db.settings.voice||{};$('btn-voice').setAttribute('aria-pressed',v.on?'true':'false');$('btn-voice').textContent=v.on?'🔊 Voz':'🔈 Voz';$('voice-on').value=v.on?'1':'0';$('voice-every').value=String(v.every??5);$('voice-zones').checked=v.zones!==false}
+function setVoice(patch){db.settings.voice={on:false,every:5,zones:true,...(db.settings.voice||{}),...patch};saveDb();renderVoiceUi()}
+/* ── Vueltas ───────────────────────────────────────────────────────────────── */
+function markLap(){if(rec.state!=='recording')return;const prev=rec.laps.at(-1)?.t??0,seg=rec.calc.filter(c=>c.t>=prev);rec.laps.push({t:+rec.elapsed.toFixed(1)});
+  const mx=seg.length?Math.max(...seg.map(c=>c.smo2)):null,n=rec.laps.length;toast(`Vuelta ${n} · ${fmtTime(rec.elapsed-prev)}${mx!=null?' · SmO₂ máx. '+Math.round(mx)+' %':''}`,'ok');
+  voiceEvent(`Vuelta ${n}${mx!=null?'. Máximo '+Math.round(mx)+' por ciento':''}`)}
+/* ── Calentamiento: la SmO₂ sube y luego se estabiliza ─────────────────────── */
+function checkWarmup(){if(rec.warmAt!=null||rec.elapsed<150||rec.elapsed>1200||rec.protocol)return;
+  const last=rec.calc.filter(c=>c.t>=rec.elapsed-60);if(last.length<20)return;const first=rec.calc.filter(c=>c.t<=30).map(c=>c.smo2);if(!first.length)return;
+  const tr=trendInfo(60);if(tr&&Math.abs(tr.perMin)<0.6&&mean(last.map(c=>c.smo2))>=mean(first)+1.5){rec.warmAt=+rec.elapsed.toFixed(0);toast('Calentamiento listo: la SmO₂ subió y se estabilizó.','ok');voiceEvent('Calentamiento listo')}}
+/* ── Vista grande ──────────────────────────────────────────────────────────── */
+function renderBig(){if($('bigview').hidden)return;const last=rec.last&&Date.now()-rec.last.at<6000?rec.last:null,z=last?zoneIdx(last.zone):0,tr=trendInfo(),ci=currentIntensity();
+  $('bigview').style.setProperty('--bvc',z>=2?ZONES[z].color+'cc':'#2d2f3d');$('bv-zone').textContent=last?(z>=2?ZONES[z].name:'Sin clasificar'):'Sin datos';$('bv-smo2').textContent=last?Math.round(last.smo2):'—';
+  $('bv-trend').textContent=tr?tr.arrow+' '+tr.text:'';$('bv-hr').textContent=(hex.hr&&Date.now()-(hex.hrAt||0)<6000?hex.hr:'—')+' lpm';$('bv-time').textContent=fmtTime(rec.elapsed);
+  $('bv-int').textContent=ci?(ci.recovery?'Recuperación · '+fmtTime(ci.left):`Fase ${ci.stage} · ${r1(ci.value)} ${protoUnit(rec.protocol)} · ${fmtTime(ci.left)}`):(rec.laps?.length?'Vuelta '+(rec.laps.length+1):'')}
+
 /* ── Bucle principal ───────────────────────────────────────────────────────── */
 let lastRender=-1e9,stageAnnounced=0;
 function loop(){
@@ -926,10 +1014,12 @@ function loop(){
     if(rec.last&&Date.now()-rec.last.at<5000)rec.zoneTime[zoneIdx(rec.last.zone)]+=dt;
     const ci=currentIntensity();
     if(rec.source==='demo'&&rec.protocol&&rec.protocol.stopAt==null&&demoIntensity(rec.elapsed)>demo.lt*1.4){toast('Demo: el deportista simulado llegó al agotamiento.');startRecoveryPhase()}
-    if(ci&&ci.recovery&&ci.left<=0&&rec.state==='recording'){toast('Prueba de umbral completada.','ok');finishRecording(true);return}
-    if(ci&&!ci.recovery&&ci.stage!==stageAnnounced){stageAnnounced=ci.stage;if(ci.stage>1)toast(`Fase ${ci.stage}: sube a ${r1(ci.value)} ${protoUnit(rec.protocol)}`,'ok')}
+    if(ci&&ci.recovery&&ci.left<=0&&rec.state==='recording'){toast('Prueba de umbral completada.','ok');voiceEvent('Prueba completada');finishRecording(true);return}
+    if(ci&&!ci.recovery&&ci.stage!==stageAnnounced){stageAnnounced=ci.stage;if(ci.stage>1){toast(`Fase ${ci.stage}: sube a ${r1(ci.value)} ${protoUnit(rec.protocol)}`,'ok');voiceEvent(`Fase ${ci.stage}. Sube a ${r1(ci.value)} ${rec.protocol.mode==='run'?'kilómetros por hora':'vatios'}`)}}
+    if(rec.protocol&&rec.protocol.stopAt==null&&!rec.redSaid){const r5=rec.calc.filter(c=>c.t>=rec.elapsed-30);if(r5.length>=20&&r5.every(c=>zoneIdx(c.zone)===5)){rec.redSaid=true;toast('Zona roja sostenida: inicio ≈ 4 mmol/L de lactato.');voiceEvent('Zona roja sostenida')}}
+    checkWarmup();voiceTick();
   }else rec.lastTick=now;
-  if(now-lastRender>240){lastRender=now;renderLive();renderThresholdLive();renderRates()}
+  if(now-lastRender>240){lastRender=now;renderLive();renderThresholdLive();renderRates();renderBig()}
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -977,7 +1067,7 @@ function setRecUi(kind,text){$('rec-dot').className='dot'+(kind?' '+kind:'');$('
 function updateButtons(){
   const active=rec.state==='recording'||rec.state==='paused';
   $('btn-pause').disabled=!active;$('btn-pause').textContent=rec.state==='paused'?'Reanudar':'Pausar';
-  $('btn-finish').disabled=!active;$('btn-connect').disabled=rec.state!=='idle'&&!(rec.source==='hex'&&rec.state==='paused');$('btn-demo').disabled=rec.state!=='idle'||hex.connected;
+  $('btn-finish').disabled=!active;$('btn-lap').disabled=rec.state!=='recording';$('btn-connect').disabled=rec.state!=='idle'&&!(rec.source==='hex'&&rec.state==='paused');$('btn-demo').disabled=rec.state!=='idle'||hex.connected;
   $('activity').disabled=$('wtype').disabled=rec.state!=='idle';
   const thrBusy=rec.state!=='idle';$('thr-start-hex').disabled=thrBusy;$('thr-start-demo').disabled=thrBusy||hex.connected;$('thr-stop').disabled=!(active&&rec.protocol);if(!rec.protocol)$('thr-stop').textContent='Agotamiento · recuperar';
   $$('#threshold input,#threshold select').forEach(i=>i.disabled=thrBusy);
@@ -1001,6 +1091,9 @@ function renderLive(){
   $('zone-marker').style.left=last&&z>=2?`calc(${(z-2)*25+12.5}% - 2px)`:'-2px';
   $$('#zone-list li').forEach(li=>li.classList.toggle('active',last&&Number(li.dataset.z)===z));
   $('tip').textContent=last?zi.tip:'Conecta el sensor y haz un calentamiento progresivo de 5 a 10 minutos.';
+  {const tr=rec.state==='recording'||rec.state==='paused'?trendInfo():null,te=$('v-trend');te.className='trend'+(tr?' '+tr.dir:'');te.textContent=tr?tr.arrow+' '+tr.text:''}
+  {const n=rec.laps?.length||0,prev=rec.laps?.at(-1)?.t??0;$('v-lap').textContent=rec.state==='idle'?'':`Vuelta ${n+1} · ${fmtTime(rec.elapsed-prev)}`;
+   $('v-warm').textContent=rec.state==='idle'||rec.protocol?'':rec.warmAt!=null?'✓ Calentamiento listo ('+fmtTime(rec.warmAt)+')':rec.elapsed<1200?'Calentando… espera que la SmO₂ se estabilice':''}
   $('v-time').textContent=fmtTime(rec.elapsed);$('axis-now').textContent=fmtTime(rec.elapsed);
   const ci=currentIntensity();$('v-intensity').textContent=ci?(ci.recovery?`Recuperación · ${fmtTime(ci.left)} restante`:`Fase ${ci.stage} · ${r1(ci.value)} ${protoUnit(rec.protocol)} · ${fmtTime(ci.left)} restante`):(rec.state==='idle'?'—':WTYPE[rec.type]+' · '+ACTIVITY[rec.activity]);
   renderHr();
@@ -1009,7 +1102,7 @@ function renderLive(){
   const cs=thin(rec.calc.filter(p=>p.t>=t0),450),hs=thin(rec.hr.filter(p=>p.t>=t0),300);
   $('chart-live-empty').hidden=cs.length>1;$('chart-hb-empty').hidden=cs.length>1;
   const sd=niceDomain(cs.map(p=>p.smo2),2,10),hd=niceDomain(hs.map(p=>p.bpm),5,30);
-  $('chart-live').innerHTML=chart({w:cw('chart-live',720),h:230,t:[t0,Math.max(t0+60,tEnd)],labels:true,labelsR:hs.length>1,aria:'SmO₂ y FC en vivo',zones:cs.map(p=>[p.t,p.zone]),
+  $('chart-live').innerHTML=chart({w:cw('chart-live',720),h:230,t:[t0,Math.max(t0+60,tEnd)],labels:true,labelsR:hs.length>1,aria:'SmO₂ y FC en vivo',zones:cs.map(p=>[p.t,p.zone]),marks:(rec.laps||[]).filter(l=>l.t>=t0).map((l,i)=>({t:l.t,color:'#d6d8e0',dash:'2 4',width:1,label:'V'+((rec.laps||[]).indexOf(l)+1)})),
     series:[{data:cs.map(p=>[p.t,p.smo2]),dom:sd,color:'#23ef7b',fill:true,width:3},{data:hs.map(p=>[p.t,p.bpm]),dom:hd,color:'#eef2fa',width:2}]});
   const hb=cs.filter(p=>fin(p.hbo2));const hdm=niceDomain(hb.flatMap(p=>[p.hbo2,p.hhb,p.hbo2+p.hhb]),3,10);
   $('chart-hb').innerHTML=chart({w:cw('chart-hb',360),h:150,t:[t0,Math.max(t0+60,tEnd)],labels:true,aria:'Hemoglobina',series:[{data:hb.map(p=>[p.t,p.hbo2]),dom:hdm,color:'#ff5c72',width:2},{data:hb.map(p=>[p.t,p.hhb]),dom:hdm,color:'#6aa7ff',width:2},{data:hb.map(p=>[p.t,p.hbo2+p.hhb]),dom:hdm,color:'#c9a6ff',width:1.5,dash:'4 4'}]});
@@ -1051,12 +1144,14 @@ function thresholdChart(s,light){
   const th=s.threshold,series=[{data:cs.map(c=>[c.t,c.smo2]),dom,color:light?'#0d9a5b':'#22e984',width:2.2}];
   if(th?.fit){const f=th.fit,x0=cs[0]?.t??0,x1=Math.min(cs.at(-1)?.t??s.duration,stopAt??Infinity),xb=th.status==='ok'?th.timeSec:f.x;series.push({data:[[x0,f.mA*x0+f.cA],[xb,f.mA*xb+f.cA]],dom,color:light?'#d18a00':'#ffd166',width:2,straight:true,dash:'6 4'},{data:[[xb,f.mB*xb+f.cB],[x1,f.mB*x1+f.cB]],dom,color:light?'#d18a00':'#ffd166',width:2,straight:true,dash:'6 4'})}
   if(th?.status==='ok')marks.push({t:th.timeSec,color:light?'#c8102e':'#f61d2f',dash:'0',width:2,label:'Umbral · '+r1(th.intensity)+' '+th.unit});
+  if(th?.red&&Math.abs(th.red.timeSec-(th.timeSec??-1e9))>20)marks.push({t:th.red.timeSec,color:light?'#d16a00':'#ff8a3d',dash:'3 3',width:1.5,label:'Zona roja'});
   return chart({w:light?760:cw('chart-thr',1000),h:light?230:240,t:[0,Math.max(s.duration,stageSec)],labels:true,light,aria:'Ajuste bilineal de la prueba',zones:cs.map(c=>[c.t,c.zone]),marks,series});
 }
 function thresholdHtml(th,compact){
   if(!th)return'';
-  if(th.status!=='ok')return`<div class="result bad"><h3>Prueba no concluyente</h3><p>${esc(th.reason)}</p><p class="note">No se informa umbral: un número con mal ajuste sería engañoso.</p></div>`;
-  return`<div class="result ok"><h3>Umbral: ${r1(th.intensity)} ${th.unit}${th.perKg?` · ${r1(th.perKg)} W/kg`:''}</h3><p>Fase ${th.stage} · minuto ${fmtTime(th.timeSec)} · método ${esc(th.method)}</p>${th.recovery?`<p>Recuperación: SmO₂ +${r1(th.recovery.rise)} pts en ${fmtTime(th.recovery.secs)}</p>`:''}<p>SmO₂ en el umbral ≈ ${r0(th.smo2)} %${th.hr?` · FC ≈ ${th.hr} lpm`:''}</p>${compact?'':`<p class="note">Calidad del ajuste (R²): SmO₂ ${th.r2.smo2!=null?th.r2.smo2.toFixed(3):'—'} · HbO₂ ${th.r2.hbo2!=null?th.r2.hbo2.toFixed(3):'—'} · HHb ${th.r2.hhb!=null?th.r2.hhb.toFixed(3):'—'}</p>`}</div>`;
+  const W=userById(db.sessions.find(x=>x.threshold===th)?.userId)?.weight;
+  if(th.status!=='ok')return`<div class="result bad"><h3>Ajuste bilineal no concluyente</h3><p>${esc(th.reason)}</p>${redHtml(th.red,th.unit,W)}${kineticsHtml(th.kin)}<p class="note">No se informa umbral bilineal: un número con mal ajuste sería engañoso.</p></div>`;
+  return`<div class="result ok"><h3>Umbral: ${r1(th.intensity)} ${th.unit}${th.perKg?` · ${r1(th.perKg)} W/kg`:''}</h3><p>Fase ${th.stage} · minuto ${fmtTime(th.timeSec)} · método ${esc(th.method)}</p>${th.recovery?`<p>Recuperación: SmO₂ +${r1(th.recovery.rise)} pts en ${fmtTime(th.recovery.secs)}</p>`:''}<p>SmO₂ en el umbral ≈ ${r0(th.smo2)} %${th.hr?` · FC ≈ ${th.hr} lpm`:''}</p>${redHtml(th.red,th.unit,W)}${kineticsHtml(th.kin)}${compact?'':`<p class="note">Calidad del ajuste (R²): SmO₂ ${th.r2.smo2!=null?th.r2.smo2.toFixed(3):'—'} · HbO₂ ${th.r2.hbo2!=null?th.r2.hbo2.toFixed(3):'—'} · HHb ${th.r2.hhb!=null?th.r2.hhb.toFixed(3):'—'}</p>`}</div>`;
 }
 function renderThresholdResult(){
   const u=activeUser();const s=db.sessions.find(x=>x.threshold&&(!u||x.userId===u.id));
@@ -1107,11 +1202,11 @@ function renderUsers(){
   const u=activeUser(),chip=$('user-chip');chip.querySelector('span').textContent=u?u.name:'Sin deportista';chip.classList.toggle('on',!!u);
 }
 function fillUserForm(u){const f=$('user-form');f.reset();$('user-form-title').textContent=u?'Editar deportista':'Nuevo deportista';if(!u){f.id.value='';return}
-  ['id','name','birth','sex','weight','height','sport','level','muscle','side','evaluator','notes'].forEach(k=>{if(f[k])f[k].value=u[k]??''})}
+  ['id','name','birth','sex','weight','height','fat','sport','level','muscle','side','evaluator','notes'].forEach(k=>{if(f[k])f[k].value=u[k]??''})}
 $('user-form').addEventListener('submit',e=>{
   e.preventDefault();const f=e.target,d=Object.fromEntries(new FormData(f).entries());
   d.name=d.name.trim();if(!d.name){toast('El nombre es obligatorio.','error');return}
-  d.weight=d.weight?Number(d.weight):null;d.height=d.height?Number(d.height):null;
+  d.weight=d.weight?Number(d.weight):null;d.height=d.height?Number(d.height):null;d.fat=d.fat?Number(d.fat):null;
   if(d.id){const u=userById(d.id);Object.assign(u,d,{updatedAt:new Date().toISOString()});db.sessions.forEach(s=>{if(s.userId===u.id)s.userName=u.name})}
   else{d.id=uid();d.createdAt=new Date().toISOString();db.users.push(d);db.activeUserId=d.id}
   saveDb();fillUserForm(null);refreshAll();toast('Deportista guardado.','ok');
@@ -1145,7 +1240,7 @@ function sessionCharts(s,tab,light){
   if(tab==='hr')return hs.length>1?chart({w:light?760:cw('sess-detail',900)-40,h:light?190:220,t,labels:true,light,aria:'FC de la sesión',series:[{data:hs.map(p=>[p.t,p.bpm]),dom:niceDomain(hs.map(p=>p.bpm),5,30),color:light?'#b0122f':'#eef2fa',width:2.2,fill:!light}]}):'<div class="empty"><span>Esta sesión no tiene FC.</span></div>';
   if(tab==='hb'){const hb=cs.filter(p=>fin(p.hbo2));if(hb.length<2)return'<div class="empty"><span>Sin datos de hemoglobina.</span></div>';const dom=niceDomain(hb.flatMap(p=>[p.hbo2,p.hhb,p.hbo2+p.hhb]),3,10);return chart({w:light?760:cw('sess-detail',900)-40,h:light?190:220,t,labels:true,light,aria:'Hemoglobina',series:[{data:hb.map(p=>[p.t,p.hbo2]),dom,color:'#e5484d',width:2},{data:hb.map(p=>[p.t,p.hhb]),dom,color:'#3b82f6',width:2},{data:hb.map(p=>[p.t,p.hbo2+p.hhb]),dom,color:'#8b5cf6',width:1.5,dash:'4 4'}]})}
   if(tab==='thr'&&s.threshold)return thresholdChart(s,light);
-  return chart({w:light?760:cw('sess-detail',900)-40,h:light?190:220,t,labels:true,labelsR:hs.length>1,light,aria:'SmO₂ de la sesión',zones:cs.map(p=>[p.t,p.zone]),series:[{data:cs.map(p=>[p.t,p.smo2]),dom:niceDomain(cs.map(p=>p.smo2),2,10),color:light?'#0d9a5b':'#22e984',width:2.4,fill:!light},{data:hs.map(p=>[p.t,p.bpm]),dom:niceDomain(hs.map(p=>p.bpm),5,30),color:light?'#b0122f':'#eef2fa',width:1.6}]});
+  return chart({w:light?760:cw('sess-detail',900)-40,h:light?190:220,t,labels:true,labelsR:hs.length>1,light,aria:'SmO₂ de la sesión',zones:cs.map(p=>[p.t,p.zone]),marks:[...(s.laps||[]).map((l,i)=>({t:l.t,color:light?'#8a93a6':'#d6d8e0',dash:'2 4',width:1,label:'V'+(i+1)})),...(s.warmupAt!=null?[{t:s.warmupAt,color:'#00acff',dash:'4 3',width:1.2,label:'Calentado'}]:[])],series:[{data:cs.map(p=>[p.t,p.smo2]),dom:niceDomain(cs.map(p=>p.smo2),2,10),color:light?'#0d9a5b':'#22e984',width:2.4,fill:!light},{data:hs.map(p=>[p.t,p.bpm]),dom:niceDomain(hs.map(p=>p.bpm),5,30),color:light?'#b0122f':'#eef2fa',width:1.6}]});
 }
 function renderSessionDetail(s){
   const st=s.stats,zt=st.zoneSec,an=sessionAnalytics(s);
@@ -1158,7 +1253,10 @@ function renderSessionDetail(s){
   <div class="tabs">${[['smo2','Oxígeno muscular'],['hb','Hemoglobina'],['hr','Ritmo cardíaco'],...(s.threshold?[['thr','Umbral']]:[])].map(([k,l])=>`<button data-htab="${k}" class="${histTab===k?'is-active':''}">${l}</button>`).join('')}</div>
   <div class="chart">${sessionCharts(s,histTab,false)}<div class="axis"><span>0:00</span><span>${fmtTime(s.duration)}</span></div></div>
   <div class="zbar" id="hd-zbar"></div><dl class="stats" id="hd-zones"></dl>
-  ${s.threshold?`<div style="margin-top:12px">${thresholdHtml(s.threshold)}</div>`:''}`;
+  ${s.threshold?`<div style="margin-top:12px">${thresholdHtml(s.threshold)}</div>`:''}
+  ${(()=>{const L=lapStats(s);return L.length?`<p class="label" style="margin-top:14px">Vueltas</p><div class="scroll-x">${lapTable(L)}</div>`:''})()}
+  ${(()=>{const I=analyzeIntervals(s);return I.length>=2?`<p class="label" style="margin-top:14px">Esfuerzos y recuperaciones</p><div class="scroll-x">${intervalTable(I)}</div><p class="foot">${esc(fatigueNote(I))}</p>`:''})()}
+  ${s.warmupAt!=null?`<p class="foot">Calentamiento listo a los ${fmtTime(s.warmupAt)}.</p>`:''}`;
   renderZoneDist($('hd-zbar'),$('hd-zones'),zt,true);
 }
 $('sess-list').addEventListener('click',e=>{const b=e.target.closest('[data-sid]');if(b){selectedSessionId=b.dataset.sid;renderHistory()}});
@@ -1223,14 +1321,21 @@ function reportHtml(s){
   const stageTable=s.protocol?(()=>{const sec=s.protocol.stageMin*60,n=Math.ceil((s.protocol.stopAt??s.duration)/sec),rows=[];const E=s.protocol.stopAt??s.duration;for(let i=0;i<n;i++){const hi=Math.min((i+1)*sec,E),seg=s.calc.filter(c=>c.t>=i*sec&&c.t<hi),last=s.calc.filter(c=>c.t>=hi-30&&c.t<hi),hr=s.hr.filter(h=>h.t>=hi-30&&h.t<hi);if(seg.length<10)continue;rows.push(`<tr><td>${i+1}</td><td class="num">${r1(s.protocol.start+s.protocol.step*i)} ${protoUnit(s.protocol)}</td><td class="num">${fmtTime(Math.min((i+1)*sec,s.protocol.stopAt??s.duration)-i*sec)}</td><td class="num">${r1(mean((last.length?last:seg).map(c=>c.smo2)))}</td><td class="num">${hr.length?r0(mean(hr.map(h=>h.bpm))):'—'}</td><td>${ZONES[zoneIdx(seg.at(-1).zone)].short}</td></tr>`)}return`<h2>Fases de la prueba</h2><table><thead><tr><th>Fase</th><th class="num">Intensidad</th><th class="num">Duración</th><th class="num">SmO₂ final %</th><th class="num">FC final</th><th>Zona final</th></tr></thead><tbody>${rows.join('')}</tbody>${s.threshold?.recovery?`<tfoot><tr><td colspan="6"><b>Recuperación</b> (${fmtTime(s.threshold.recovery.secs)}): SmO₂ máx. ${r1(s.threshold.recovery.max)} % · reoxigenación +${r1(s.threshold.recovery.rise)} pts desde el agotamiento</td></tr></tfoot>`:''}</table>`})():'';
   return`<div class="rhead"><div class="rlogo">${HEX_LOGO}<div><h1>Informe de oxígeno muscular</h1><small>ReadHumHex · NIRS · SmO₂</small></div></div><div class="rmeta"><b style="color:#1d2333">${esc(d.toLocaleDateString('es-CL',{day:'numeric',month:'long',year:'numeric'}))}</b><br>${esc(d.toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit'}))} h · ID ${esc(s.id.slice(0,8))}</div></div>
   ${s.source==='demo'?'<div class="rbox bad" style="margin-top:12px"><b>DATOS SIMULADOS (modo demostración).</b> Este informe es solo un ejemplo y no corresponde a una medición real.</div>':''}
-  <h2>Deportista</h2><dl class="rgrid">${row('Nombre',esc(u.name))}${row('Edad',a!=null?a+' años':'')}${row('Sexo',{F:'Femenino',M:'Masculino',X:'Otro'}[u.sex])}${row('Deporte',esc(u.sport))}${row('Peso',u.weight?r1(u.weight)+' kg':'')}${row('Talla',u.height?r1(u.height)+' cm':'')}${row('IMC',bmi?r1(bmi)+' kg/m²':'')}${row('Nivel',esc(u.level))}${row('Músculo',esc([u.muscle,u.side].filter(Boolean).join(' · ')))}${row('Evaluador',esc(u.evaluator))}</dl>
+  <h2>Deportista</h2><dl class="rgrid">${row('Nombre',esc(u.name))}${row('Edad',a!=null?a+' años':'')}${row('Sexo',{F:'Femenino',M:'Masculino',X:'Otro'}[u.sex])}${row('Deporte',esc(u.sport))}${row('Peso',u.weight?r1(u.weight)+' kg':'')}${row('Talla',u.height?r1(u.height)+' cm':'')}${row('IMC',bmi?r1(bmi)+' kg/m²':'')}${row('Nivel',esc(u.level))}${row('Músculo',esc([u.muscle,u.side].filter(Boolean).join(' · ')))}${row('Evaluador',esc(u.evaluator))}${row('Pliegue (sitio)',u.fat?r1(u.fat)+' mm':'')}</dl>
   <h2>Sesión</h2><dl class="rgrid">${row('Actividad',esc(ACTIVITY[s.activity]))}${row('Tipo',esc(WTYPE[s.type]))}${row('Duración',fmtTime(s.duration))}${row('Fuente',esc(SOURCE[s.source]))}${row('Dispositivo',esc(s.device?[s.device.name,s.device.info].filter(Boolean).join(' · '):s.source==='hex'?'Humon Hex':'—'))}${row('Percepción (1–10)',s.rpe?s.rpe+' · '+RPE[s.rpe]:'')}${s.protocol?row('Protocolo',`${s.protocol.mode==='run'?'Cinta':'Bicicleta estática'} · ${r1(s.protocol.start)} ${protoUnit(s.protocol)} + ${r1(s.protocol.step)} cada ${r1(s.protocol.stageMin)} min`):''}${row('Muestras',s.calc.length+' (1 Hz)')}</dl>
   <h2>Resultados clave</h2><dl class="rgrid kpi">${row('Puntuación',an.score.toFixed(0))}${row('Esfuerzo',effortDots(an.effort,true)+' <small style="font-weight:400">'+an.effort+'/4</small>')}${row('SmO₂ promedio',r0(st.smo2.avg)+' %')}${row('SmO₂ mín. / máx.',r0(st.smo2.min)+' / '+r0(st.smo2.max)+' %')}${row('SmO₂ basal',r1(st.smo2.baseline)+' %')}${row('Desaturación',r1(st.smo2.desat)+' pts')}${row('FC promedio',fin(st.hr.avg)?r0(st.hr.avg)+' lpm':'')}${row('FC máxima',fin(st.hr.max)?r0(st.hr.max)+' lpm':'')}${row('Estado estable',Math.round(100*zt[3]/tot)+' %')}${row('Aprox. límite + límite',Math.round(100*(zt[4]+zt[5])/tot)+' %')}</dl><div class="rbox" style="margin-top:8px"><b>Consejo:</b> ${esc(an.tipText)}</div>
   <h2>Oxígeno muscular y ritmo cardíaco</h2><div class="rchart">${sessionCharts(s,'smo2',true)}<div class="axis"><span>0:00</span><span>${fmtTime(s.duration/2)}</span><span>${fmtTime(s.duration)}</span></div><div class="rlegend"><span style="--dot:#0d9a5b">SmO₂ % (eje izq.)</span>${s.hr.length?'<span style="--dot:#b0122f">FC lpm (eje der.)</span>':''}<span style="--dot:linear-gradient(90deg,#00acff,#23ef7b,#f39412,#ff001f)">Zona de fondo</span></div></div>
   ${s.calc.some(c=>fin(c.hbo2))?`<h2>Hemoglobina</h2><div class="rchart">${sessionCharts(s,'hb',true)}<div class="rlegend"><span style="--dot:#e5484d">HbO₂ µM</span><span style="--dot:#3b82f6">HHb µM</span><span style="--dot:#8b5cf6">tHb µM</span></div></div>`:''}
   <h2>Distribución de zonas</h2><table><thead><tr><th>Zona</th><th>Oferta vs. demanda de O₂</th><th class="num">Tiempo</th><th class="num">%</th></tr></thead><tbody>${[2,3,4,5,1].map(z=>`<tr><td><span style="display:inline-block;width:9px;height:9px;border-radius:2px;background:${z<2?'#c9ccd4':ZONES[z].color};margin-right:6px"></span>${z<2?'— · Sin clasificar':ZONES[z].name}</td><td>${ZONES[z].desc}</td><td class="num">${fmtTime(z<2?zt[0]+zt[1]:zt[z])}</td><td class="num">${Math.round(100*(z<2?zt[0]+zt[1]:zt[z])/tot)}</td></tr>`).join('')}</tbody></table>
-  ${s.threshold?`<h2>Prueba de umbral</h2><div class="rbox ${s.threshold.status==='ok'?'ok':'bad'}">${s.threshold.status==='ok'?`<b style="font-size:15px">${r1(s.threshold.intensity)} ${s.threshold.unit}${s.threshold.perKg?' · '+r1(s.threshold.perKg)+' W/kg':''}</b><br>Fase ${s.threshold.stage} · tiempo ${fmtTime(s.threshold.timeSec)} · SmO₂ ≈ ${r0(s.threshold.smo2)} %${s.threshold.hr?' · FC ≈ '+s.threshold.hr+' lpm':''} · método ${esc(s.threshold.method)}<br><span style="color:#5f6b7f">R²: SmO₂ ${s.threshold.r2.smo2?.toFixed(3)??'—'} · HbO₂ ${s.threshold.r2.hbo2?.toFixed(3)??'—'} · HHb ${s.threshold.r2.hhb?.toFixed(3)??'—'}</span>`:`<b>Prueba no concluyente.</b> ${esc(s.threshold.reason)} No se informa un umbral.`}</div><div class="rchart" style="margin-top:8px">${thresholdChart(s,true)}<div class="rlegend"><span style="--dot:#0d9a5b">SmO₂</span><span style="--dot:#d18a00">Ajuste bilineal</span><span style="--dot:#c8102e">Umbral</span></div></div>${stageTable}`:''}
-  <h2>Síntesis</h2><p>${esc(interpret(s))}</p>
+  ${s.threshold?`<h2>Prueba de umbral</h2><div class="rbox ${s.threshold.status==='ok'?'ok':'bad'}">${s.threshold.status==='ok'?`<b style="font-size:15px">${r1(s.threshold.intensity)} ${s.threshold.unit}${s.threshold.perKg?' · '+r1(s.threshold.perKg)+' W/kg':''}</b><br>Fase ${s.threshold.stage} · tiempo ${fmtTime(s.threshold.timeSec)} · SmO₂ ≈ ${r0(s.threshold.smo2)} %${s.threshold.hr?' · FC ≈ '+s.threshold.hr+' lpm':''} · método ${esc(s.threshold.method)}${redHtml(s.threshold.red,s.threshold.unit,u.weight)}${kineticsHtml(s.threshold.kin)}<span style="color:#5f6b7f">R²: SmO₂ ${s.threshold.r2.smo2?.toFixed(3)??'—'} · HbO₂ ${s.threshold.r2.hbo2?.toFixed(3)??'—'} · HHb ${s.threshold.r2.hhb?.toFixed(3)??'—'}</span>`:`<b>Ajuste bilineal no concluyente.</b> ${esc(s.threshold.reason)} No se informa umbral bilineal.${redHtml(s.threshold.red,s.threshold.unit,u.weight)}${kineticsHtml(s.threshold.kin)}`}</div><div class="rchart" style="margin-top:8px">${thresholdChart(s,true)}<div class="rlegend"><span style="--dot:#0d9a5b">SmO₂</span><span style="--dot:#d18a00">Ajuste bilineal</span><span style="--dot:#c8102e">Umbral</span></div></div>${stageTable}`:''}
+  ${(()=>{const L=lapStats(s);return L.length?`<h2>Vueltas</h2>${lapTable(L)}<p style="font-size:10px;color:#5f6b7f">Mesetas: máximo y mínimo de la media móvil de 10 s dentro de cada vuelta.</p>`:''})()}
+  ${(()=>{const I=analyzeIntervals(s);return I.length>=2?`<h2>Esfuerzos y recuperaciones</h2>${intervalTable(I)}<div class="rbox" style="margin-top:6px">${esc(fatigueNote(I))} <span style="color:#5f6b7f">Esfuerzo = zona 4–5 sostenida ≥10 s. T½ = segundos desde el valle hasta recuperar el 50 % hacia el pico de la recuperación.</span></div>`:''})()}
+  <h2>Síntesis</h2><p>${esc(interpret(s))}${s.warmupAt!=null?` El calentamiento se completó a los ${fmtTime(s.warmupAt)} (la SmO₂ subió y se estabilizó).`:''}</p>
+  <h2>Notas de interpretación</h2><ul style="margin:0;padding-left:16px;font-size:11px;color:#3b4456">
+    <li>Valores de referencia de usuarios Hex: SmO₂ promedio 64 ± 10 %, máxima 72 ± 10 %, mínima 52 ± 17 %. Compara siempre con el propio historial del deportista.</li>
+    <li>La SmO₂ del Hex concuerda bien con un oxímetro de referencia (r = 0,86; error 3,4 %). HbO₂, HHb y tHb concuerdan menos en valor absoluto (error 19–26 %): interprétalos como tendencias.</li>
+    ${u.fat?`<li>Pliegue en el sitio: ${r1(u.fat)} mm.${u.fat>=10?' Un tejido adiposo mayor atenúa la caída de SmO₂; las desaturaciones pueden subestimarse.':' Valor dentro de lo habitual para el recto femoral (5–7 mm).'}</li>`:''}
+    <li>Fuente: Farzam et al., Physiological Reports 2018 (validación del Hex).</li></ul>
   ${s.notes?`<h2>Notas</h2><p>${esc(s.notes)}</p>`:''}
   ${u.notes?`<h2>Observaciones del deportista</h2><p>${esc(u.notes)}</p>`:''}
   <div class="sign"><div>${esc(u.evaluator||'Evaluador')}</div><div>${esc(u.name)}</div></div>
@@ -1250,8 +1355,8 @@ function exportCsv(s){if(!s)return;
   const hrAt=new Map(s.hr.map(h=>[h.t,h.bpm]));
   const meta=[`# ReadHumHex v${VERSION}`,`# deportista: ${s.userName||'sin asignar'}`,`# fecha: ${s.date}`,`# actividad: ${ACTIVITY[s.activity]} · tipo: ${WTYPE[s.type]} · fuente: ${SOURCE[s.source]}`];
   if(s.threshold)meta.push(`# umbral: ${s.threshold.status==='ok'?s.threshold.intensity+' '+s.threshold.unit+' (t='+s.threshold.timeSec+' s)':'no concluyente'}`);
-  const rows=s.calc.map(c=>[c.t,c.smo2,c.hbo2??'',c.hhb??'',fin(c.hbo2)?+(c.hbo2+c.hhb).toFixed(2):'',c.zone,hrAt.get(c.t)??'',c.int??''].join(','));
-  download(reportFileBase(s).replace('informe','sesion')+'.csv',meta.join('\n')+'\ntiempo_s,smo2,hbo2,hhb,thb,zona,fc,intensidad\n'+rows.join('\n'),'text/csv')}
+  const lapOf=t=>1+(s.laps||[]).filter(l=>l.t<=t).length;const rows=s.calc.map(c=>[c.t,c.smo2,c.hbo2??'',c.hhb??'',fin(c.hbo2)?+(c.hbo2+c.hhb).toFixed(2):'',c.zone,hrAt.get(c.t)??'',c.int??'',lapOf(c.t)].join(','));
+  download(reportFileBase(s).replace('informe','sesion')+'.csv',meta.join('\n')+'\ntiempo_s,smo2,hbo2,hhb,thb,zona,fc,intensidad,vuelta\n'+rows.join('\n'),'text/csv')}
 $('rep-csv').onclick=()=>exportCsv(db.sessions.find(x=>x.id===reportSessionId));
 $('rep-json').onclick=()=>{const s=db.sessions.find(x=>x.id===reportSessionId);if(s)download(reportFileBase(s).replace('informe','sesion')+'.json',JSON.stringify({app:'ReadHumHex',version:VERSION,athlete:userById(s.userId),session:s},null,2),'application/json')};
 
@@ -1313,7 +1418,15 @@ function zoneListHtml(){return[2,3,4,5].map(z=>`<li data-z="${z}"><i style="back
 
 $('btn-connect').onclick=hexMainAction;$('set-connect').onclick=connectHex;
 $('conn-chip').onclick=()=>{if(rec.source==='demo'&&rec.state!=='idle'){showView('live');return}connectHex()};
-$('btn-demo').onclick=startDemo;$('btn-hr').onclick=connectHr;$('set-hr').onclick=connectHr;
+$('btn-demo').onclick=startDemo;
+$('btn-lap').onclick=markLap;
+$('btn-big').onclick=()=>{$('bigview').hidden=false;renderBig();try{document.documentElement.requestFullscreen?.()}catch{}};
+$('bigview').onclick=()=>{$('bigview').hidden=true;try{document.fullscreenElement&&document.exitFullscreen()}catch{}};
+$('btn-voice').onclick=()=>{const on=!(db.settings.voice||{}).on;setVoice({on});if(on)speak('Avisos por voz activados',true);else try{speechSynthesis.cancel()}catch{}};
+$('voice-on').onchange=e=>setVoice({on:e.target.value==='1'});$('voice-every').onchange=e=>setVoice({every:Number(e.target.value)});$('voice-zones').onchange=e=>setVoice({zones:e.target.checked});
+$('voice-test').onclick=()=>speak('Oxígeno muscular 64 por ciento, estable. Zona verde.',true);
+document.addEventListener('keydown',e=>{if(e.target.closest('input,textarea,select'))return;if(e.key==='v'||e.key==='V')markLap();if(e.key==='Escape')$('bigview').hidden=true});
+try{speechSynthesis?.getVoices()}catch{}$('btn-hr').onclick=connectHr;$('set-hr').onclick=connectHr;
 $('btn-pause').onclick=togglePause;$('btn-finish').onclick=finishRecording;
 $('thr-start-hex').onclick=()=>startThreshold('hex');$('thr-start-demo').onclick=()=>startThreshold('demo');$('thr-stop').onclick=()=>{const ci=currentIntensity();if(ci&&!ci.recovery)startRecoveryPhase();else finishRecording()};
 $('demo-speed').onchange=e=>{db.settings.demoSpeed=Number(e.target.value);saveDb();if(rec.source==='demo'&&rec.state==='recording'){rec.speed=db.settings.demoSpeed;$('v-speed').textContent=rec.speed>1?'Simulación a '+rec.speed+'×':''}};
@@ -1325,7 +1438,7 @@ window.addEventListener('beforeunload',e=>{if(rec.state==='recording'||rec.state
 
 loadDb();
 $('ver').textContent=VERSION;$('zone-list').innerHTML=zoneListHtml();$('guide-zones').innerHTML=zoneListHtml();
-$('demo-speed').value=String(db.settings.demoSpeed);applyProtocolUi();
+$('demo-speed').value=String(db.settings.demoSpeed);applyProtocolUi();renderVoiceUi();
 if(!navigator.bluetooth){$('btn-connect').title=$('thr-start-hex').title='Este navegador no ofrece Bluetooth web';}
 setConn('Hex desconectado');updateButtons();renderUsers();
 showView(location.hash.slice(1)||'live');
