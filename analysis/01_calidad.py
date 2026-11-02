@@ -51,7 +51,10 @@ def main(paths):
         if not rr.empty:
             v = rr["rr_ms"].to_numpy()
             art = np.mean(np.abs(np.diff(v)) / v[:-1] > 0.2) * 100 if len(v) > 1 else 0
-            print(f"RR    n={len(v)}  FC media {60000 / v.mean():.0f} lpm  artefactos {art:.1f} %")
+            cov = v.sum() / 1000 / max(1e-9, rr["t_s"].iloc[-1] - rr["t_s"].iloc[0] + v[0] / 1000) * 100
+            print(f"RR    n={len(v)}  FC media {60000 / v.mean():.0f} lpm  artefactos {art:.1f} %  cobertura {cov:.0f} % del tiempo")
+            if art > 5 or cov < 90:
+                print("      RR no aptos para DFA-α1 (se requieren <5 % de artefactos y ~100 % de cobertura: banda torácica ECG, p. ej. Polar H10)")
         else:
             print("RR    sin datos (la banda no envía RR o no se conectó)")
         m = rhx.markers_df(pkg)

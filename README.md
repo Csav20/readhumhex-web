@@ -41,6 +41,7 @@ Agrega todo lo que una evaluación necesita: **fichas de deportistas**, **prueba
 | 📄 **Informe** | Documento A4 listo para **imprimir o guardar en PDF**, con datos del deportista, resultados clave, gráficos, tabla de zonas, umbral con la curva ajustada, tabla de etapas, síntesis y firmas. También se descarga como **HTML, CSV o JSON**. |
 | ⚙️ **Dispositivos** | Hex y monitor de FC por separado; modelo, fabricante, número de serie, versiones de hardware y firmware; batería con aviso al 10 %; estado y calibración del Hex; tasa de paquetes por característica BLE; diagnóstico exportable; respaldo e importación de todos los datos. |
 | 🔬 **Modo investigación** | Captura completa del Hex a ~4 Hz (HHb, HbO₂, SmO₂, **zona del firmware**, **señal cruda RAW** con hora de llegada), **intervalos RR** de la banda, **muestras de lactato, VO₂, VE, RER** marcadas en el tiempo, y descarga de un **paquete anónimo .json** por código de participante. Se analiza con los scripts de [`analysis/`](analysis/). |
+| 🩸 **Lactato** | Tarjetas operativas: **Lactato** (fase por zona roja del Hex sin calibrar; **mmol/L con rango** cuando el deportista está calibrado con ≥3 muestras capilares), **fase metabólica** I/II/III con FC de LT1 y LT2, **tendencia** (mmol/L/min) y **última muestra medida**. Curva lactato–FC por deportista y comparación de los métodos del Hex contra el LT2 medido. No extrapola fuera del rango calibrado. |
 | ❤️ **DFA‑α1** | Desde los intervalos RR: α1 en vivo y FC en α1 = 0,75 (≈VT1) y 0,5 (≈VT2), rotulado como experimental. |
 | 🧪 **Modo demo** | Datos simulados (siempre rotulados como tales) a 1×–20× de velocidad para probar todo sin sensor, incluso en iPhone. |
 
@@ -140,7 +141,7 @@ El algoritmo de zonas del firmware del Hex **nunca se publicó**. La estrategia 
 4. **Explorar**: ¿hay pulso cardíaco en la señal cruda a ~4 Hz? (`analysis/04_fc_desde_raw.py`). En teoría solo bajo 120 lpm (límite de Nyquist).
 5. **Publicar**: código, algoritmo y artículo; cada métrica de la app con su nivel de evidencia.
 
-Ver el protocolo piloto en [`analysis/README.md`](analysis/README.md).
+Ver el protocolo piloto en [`analysis/README.md`](analysis/README.md) y los resultados en [`analysis/resultados/`](analysis/resultados/).
 
 ---
 
@@ -250,7 +251,7 @@ ReadHumHex es un **cliente independiente**, sin afiliación con Humon ni con Dyn
 - [x] Umbral por inicio de zona roja y cinética de recuperación
 - [x] Modo investigación, DFA‑α1, muestras de lactato y VO₂, scripts de análisis
 - [ ] Modelo abierto de zonas validado
-- [ ] Lactato estimado calibrado por deportista
+- [x] Lactato estimado calibrado por deportista (curva lactato–FC; SmO₂ como verificación)
 - [ ] GPS (distancia, ritmo, mapa)
 - [ ] Exportar TCX/GPX e importar FIT
 - [ ] Integración con potenciómetro BLE (Cycling Power 0x1818)
@@ -298,4 +299,4 @@ Si ReadHumHex te resulta útil en tu laboratorio, club o investigación, puedes 
 
 © 2026 Claudio Abarca Vargas. Todos los derechos reservados. Ver [`LICENSE`](LICENSE).
 
-Versión 1.3.0 · 2026‑11‑02
+Versión 1.4.0 · 2026‑11‑02

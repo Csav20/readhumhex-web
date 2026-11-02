@@ -131,6 +131,9 @@ table.mini{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}tab
 .mk{margin:0 0 14px;border:1px solid var(--line);border-radius:9px;background:var(--surface)}.mk summary{cursor:pointer;padding:10px 14px;font-size:12px;font-weight:700;color:var(--ink-2);list-style:none}.mk summary::-webkit-details-marker{display:none}.mk summary::before{content:"＋ ";color:var(--z3)}.mk[open] summary::before{content:"－ "}
 .mk-form{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;padding:0 14px 12px}.mk-form label{display:grid;gap:3px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}.mk-form input{width:92px}.mk-form input.wide{width:200px}
 .badge{display:inline-block;font-size:9px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;padding:2px 6px;border-radius:4px;background:var(--surface-3);color:var(--ink-2);margin-left:6px;vertical-align:1px}.badge.exp{background:rgba(243,148,18,.18);color:#ffc163}.badge.fw{background:rgba(0,172,255,.15);color:#7fd0ff}.badge.res{background:rgba(35,239,123,.15);color:#5ff0a6}
+.lac-row{margin-top:-2px}.lac-card{position:relative;overflow:hidden}.lac-card::before{content:"";position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--lacc,#5a5c6b)}
+.lac-val{font-size:40px;font-weight:700;letter-spacing:-1px;line-height:1}.lac-val small{font-size:13px;font-weight:600;color:var(--muted);margin-left:4px;letter-spacing:0}.lac-range{font-size:12px;color:var(--ink-2);margin-top:6px}
+.phase-bar{display:flex;height:10px;border-radius:6px;overflow:hidden;margin:12px 0 6px}.phase-bar i{flex:1;opacity:.35}.phase-bar i.on{opacity:1}
 .zbar{display:flex;height:10px;border-radius:6px;overflow:hidden;background:var(--surface-3);margin-top:10px}
 .zbar i{display:block;height:100%}
 .tip{margin-top:12px;padding:11px 12px;border-left:3px solid var(--cyan);background:var(--surface-2);border-radius:0 7px 7px 0;font-size:12px;color:var(--ink-2)}
@@ -322,6 +325,7 @@ footer a{color:var(--muted)}
             <div class="actions full"><button class="btn primary" type="submit">Guardar deportista</button><button class="btn ghost" type="button" id="user-cancel">Limpiar</button></div>
           </form>
         </article>
+        <article class="panel full"><div class="ph"><div><h2>Calibración de lactato del deportista activo</h2><p>Se calibra con una sesión que tenga 3 o más muestras de lactato capilar registradas (idealmente la prueba de umbral). Se usa la sesión más reciente.</p></div></div><div id="lac-cal"></div></article>
       </div>
     </section>
 
@@ -361,6 +365,13 @@ footer a{color:var(--muted)}
         <article class="panel"><p class="label">Frecuencia cardíaca</p><p class="big" id="v-hr">—<small>lpm</small></p><p class="foot" id="hr-src">Sin banda de FC. El Hex no mide FC.</p><p class="foot" id="v-dfa"></p><button class="btn sm" id="btn-hr" style="margin-top:10px">Conectar banda FC</button></article>
         <article class="panel"><p class="label">Zona</p><p class="big" id="v-zone">—<small>/ 5</small></p><div class="zone-scale"><i id="zone-marker"></i></div><p class="foot" id="zone-label">Sin lectura</p></article>
         <article class="panel"><p class="label">Tiempo de sesión</p><p class="big" id="v-time">00:00</p><p class="foot" id="v-intensity">—</p><p class="foot" id="v-lap"></p><p class="foot" id="v-warm"></p><p class="foot" id="v-speed"></p></article>
+      </div>
+
+      <div class="live-top lac-row">
+        <article class="panel lac-card" id="lac-card"><p class="label">Lactato <span class="badge" id="lac-badge">—</span></p><p class="lac-val" id="lac-val">—</p><p class="lac-range" id="lac-range">Sin calibrar</p><p class="foot" id="lac-src"></p></article>
+        <article class="panel"><p class="label">Fase metabólica</p><p class="big" id="ph-name" style="font-size:24px">—</p><div class="phase-bar"><i style="background:#00acff" id="ph1"></i><i style="background:#f39412" id="ph2"></i><i style="background:#ff001f" id="ph3"></i></div><p class="foot" id="ph-lt">LT1 / LT2: —</p></article>
+        <article class="panel"><p class="label">Tendencia del lactato</p><p class="big" id="lac-trend" style="font-size:28px">—</p><p class="foot">mmol/L por minuto (últimos 60 s)</p><p class="foot" id="lac-acc"></p></article>
+        <article class="panel"><p class="label">Última muestra medida</p><p class="big" id="lac-last" style="font-size:28px">—</p><p class="foot" id="lac-last-t">Registra lactato capilar con «Registrar muestra»</p><p class="foot" id="lac-cal-t"></p></article>
       </div>
 
       <div class="live-grid">
@@ -570,7 +581,7 @@ footer a{color:var(--muted)}
    Todo corre en el navegador: Web Bluetooth para los sensores, localStorage para
    los datos, SVG propio para los gráficos. Sin servidores ni dependencias.
    ════════════════════════════════════════════════════════════════════════════ */
-const VERSION='1.3.0';
+const VERSION='1.4.0';
 const $=id=>document.getElementById(id);
 const $$=(sel,root=document)=>[...root.querySelectorAll(sel)];
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -787,7 +798,7 @@ function onHrDisconnected(){hex.hrDevice=null;hex.hr=null;hex.hrStatus='Banda de
    Un reloj virtual (rec.elapsed) avanza con el tiempo real × velocidad; en el modo
    demo la velocidad puede ser 5–20× para recorrer una prueba en pocos minutos.
    ════════════════════════════════════════════════════════════════════════════ */
-const rec={full:[],rr:[],markers:[],dfa:[],state:'idle',source:null,startedAt:null,elapsed:0,lastTick:0,speed:1,calc:[],hr:[],raw:[],zoneTime:[0,0,0,0,0,0],last:null,lastAt:0,activity:'cycling',type:'endurance',protocol:null,stopped:false};
+const rec={lacEst:[],full:[],rr:[],markers:[],dfa:[],state:'idle',source:null,startedAt:null,elapsed:0,lastTick:0,speed:1,calc:[],hr:[],raw:[],zoneTime:[0,0,0,0,0,0],last:null,lastAt:0,activity:'cycling',type:'endurance',protocol:null,stopped:false};
 function currentIntensity(){const p=rec.protocol;if(!p)return null;
   if(p.stopAt!=null){const rs=(p.recMin??3)*60,el=rec.elapsed-p.stopAt;return{recovery:true,stage:'R',value:null,left:Math.max(0,rs-el),frac:rs?Math.min(1,el/rs):1}}
   const i=Math.floor(rec.elapsed/(p.stageMin*60));return{stage:i+1,value:p.start+p.step*i,left:p.stageMin*60-(rec.elapsed%(p.stageMin*60)),frac:(rec.elapsed%(p.stageMin*60))/(p.stageMin*60)}}
@@ -799,7 +810,7 @@ function beginRecording(source){
   if(rec.state==='recording')return;
   rec.state='recording';rec.source=source;rec.startedAt=new Date();rec.elapsed=0;rec.lastTick=performance.now();
   rec.speed=source==='demo'?Number(db.settings.demoSpeed)||1:1;
-  rec.calc=[];rec.hr=[];rec.raw=[];rec.zoneTime=[0,0,0,0,0,0];rec.last=null;stageAnnounced=0;rec.laps=[];rec.warmAt=null;rec.redSaid=false;rec.full=[];rec.rr=[];rec.markers=[];rec.dfa=[];dfaNextAt=0;hex.rejects=0;voiceNextAt=0;voiceZone=null;voiceZoneSaid=null;
+  rec.calc=[];rec.hr=[];rec.raw=[];rec.zoneTime=[0,0,0,0,0,0];rec.last=null;stageAnnounced=0;rec.laps=[];rec.warmAt=null;rec.redSaid=false;rec.full=[];rec.rr=[];rec.markers=[];rec.dfa=[];rec.lacEst=[];dfaNextAt=0;hex.rejects=0;voiceNextAt=0;voiceZone=null;voiceZoneSaid=null;
   rec.activity=$('activity').value;rec.type=$('wtype').value;
   rec.protocol=rec.type==='incremental'?{...readProtocol()}:null;
   if(source==='demo')demo.reset();
@@ -1042,6 +1053,76 @@ function researchPackage(s){const u=userById(s.userId)||{};const code=u.code||('
       hr:{columns:['t_s','bpm'],rows:rec.hr.map(h=>[h.t,h.bpm])},rr:{columns:['t_s','rr_ms'],rows:rec.rr},calc_1hz:s.calc},
     markers:s.markers||[],derived:{stats:s.stats,threshold:s.threshold?{...s.threshold,fit:undefined}:null,dfa:s.dfa||[],dfa_thresholds:dfaThresholds(s.dfa),intervals:analyzeIntervals(s),laps:lapStats(s),analytics:sessionAnalytics(s)}}}
 
+/* ════════════════════════════════════════════════════════════════════════════
+   LACTATO
+   Nivel 1 (sin calibrar): fase según la zona roja sostenida del Hex, que en su
+     validación correspondió a ~4 mmol/L (Farzam et al. 2018). Sin número.
+   Nivel 2 (calibrado por deportista): curva individual lactato–FC y lactato–
+     desaturación de SmO₂ (exponencial, y = a + b·e^(k·x)) ajustadas con
+     muestras capilares reales. El valor se muestra con su rango y solo dentro
+     del rango calibrado: no se extrapola.
+   ════════════════════════════════════════════════════════════════════════════ */
+function lacPoints(s){const base=s.stats?.smo2?.baseline;return(s.markers||[]).filter(m=>fin(m.lac)).map(m=>{const h=s.hr.filter(x=>Math.abs(x.t-m.t)<=15).map(x=>x.bpm),sm=s.calc.filter(c=>Math.abs(c.t-m.t)<=15).map(c=>c.smo2);
+  return{t:m.t,lac:m.lac,hr:h.length?mean(h):null,desat:sm.length&&fin(base)?base-mean(sm):null}})}
+function fitExp(xs,ys){if(xs.length<3)return null;const x0=Math.min(...xs);let best=null;
+  for(let k=0.004;k<=0.8;k*=1.06){const e=xs.map(x=>Math.exp(k*(x-x0))),me=mean(e),my=mean(ys);let sxy=0,sxx=0;e.forEach((v,i)=>{sxy+=(v-me)*(ys[i]-my);sxx+=(v-me)**2});if(!sxx)continue;const b=sxy/sxx;if(b<=0)continue;const a=my-b*me,rm=Math.sqrt(mean(ys.map((y,i)=>(y-(a+b*e[i]))**2)));if(!best||rm<best.rmse)best={a,b,k,x0,rmse:rm}}
+  return best}
+const evalExp=(f,x)=>f.a+f.b*Math.exp(f.k*(x-f.x0));
+const invExp=(f,y)=>y>f.a?f.x0+Math.log((y-f.a)/f.b)/f.k:null;
+let lacModelCache={key:null,val:null};
+function lactateModel(userId){const key=userId+'|'+db.sessions.length+'|'+(db.sessions[0]?.id||'');if(lacModelCache.key===key)return lacModelCache.val;
+  let M=null;const s=userId?db.sessions.find(x=>x.userId===userId&&lacPoints(x).filter(p=>p.hr!=null).length>=3):null;
+  if(s){const pts=lacPoints(s),ph=pts.filter(p=>p.hr!=null),pd=pts.filter(p=>p.desat!=null),fh=fitExp(ph.map(p=>p.hr),ph.map(p=>p.lac)),fd=pd.length>=3?fitExp(pd.map(p=>p.desat),pd.map(p=>p.lac)):null;
+    if(fh){const lt=y=>{const x=invExp(fh,y);return x!=null&&fin(x)?x:null};
+      M={sessionId:s.id,date:s.date,simulated:s.source==='demo',n:ph.length,fh,fd,pts,hrMin:Math.min(...ph.map(p=>p.hr)),hrMax:Math.max(...ph.map(p=>p.hr)),dMin:pd.length?Math.min(...pd.map(p=>p.desat)):null,dMax:pd.length?Math.max(...pd.map(p=>p.desat)):null,lt1Hr:lt(2),lt2Hr:lt(4)}}}
+  lacModelCache={key,val:M};return M}
+function lactateEstimate(hr,desat,M){if(!M)return null;const eh=hr!=null&&hr>=M.hrMin-5&&hr<=M.hrMax+5?evalExp(M.fh,hr):null,ed=M.fd&&desat!=null&&desat>=M.dMin-2&&desat<=M.dMax+2?evalExp(M.fd,desat):null;
+  /* Valor principal: curva lactato–FC (método establecido). La desaturación de SmO₂
+     depende del basal de cada sesión y de la colocación: se muestra solo como verificación. */
+  if(eh==null)return{out:true,bySmo2:ed};const val=Math.max(0.5,eh),err=M.fh.rmse+0.2;
+  return{value:val,lo:Math.max(0.3,val-err),hi:val+err,byHr:eh,bySmo2:ed,disc:ed!=null&&Math.abs(ed-eh)>1.5}}
+function lacPhase(v){return v==null?null:v<2?1:v<4?2:3}
+const PHASE_NAME={1:'Fase I · aeróbica',2:'Fase II · transición',3:'Fase III · sobre umbral'};
+function renderLactate(){const u=activeUser(),M=u?lactateModel(u.id):null,active=rec.state==='recording'||rec.state==='paused';
+  const last=rec.last&&Date.now()-rec.last.at<6000?rec.last:null,hr=hex.hr&&Date.now()-(hex.hrAt||0)<6000?hex.hr:null;
+  const base=mean(rec.calc.filter(c=>c.t<=60).map(c=>c.smo2)),now=rec.calc.filter(c=>c.t>=rec.elapsed-10).map(c=>c.smo2),desat=fin(base)&&now.length?base-mean(now):null;
+  const red=rec.calc.filter(c=>c.t>=rec.elapsed-30),redSust=red.length>=20&&red.every(c=>zoneIdx(c.zone)===5),z=last?zoneIdx(last.zone):0;
+  const card=$('lac-card');let phase=null;
+  if(M&&active){const e=lactateEstimate(hr,desat,M);
+    $('lac-badge').className='badge res';$('lac-badge').textContent='estimado · calibrado';
+    if(e&&!e.out){$('lac-val').innerHTML=r1(e.value)+'<small>mmol/L</small>';$('lac-range').textContent=`rango ${r1(e.lo)}–${r1(e.hi)} mmol/L`;phase=lacPhase(e.value);
+      $('lac-src').innerHTML='Curva lactato–FC'+(e.bySmo2!=null?` · verificación SmO₂ ${r1(e.bySmo2)}${e.disc?' <span class="badge exp">discrepa</span>':' ✓'}`:'');
+      if(rec.state==='recording'&&(!rec.lacEst.length||rec.elapsed-rec.lacEst.at(-1).t>=1))rec.lacEst.push({t:rec.elapsed,v:e.value})}
+    else{$('lac-val').innerHTML='—';$('lac-range').textContent=e?.out?'Fuera del rango calibrado: no se extrapola':'Esperando FC y SmO₂';$('lac-src').textContent=`Calibrado entre ${Math.round(M.hrMin)} y ${Math.round(M.hrMax)} lpm`}}
+  else{$('lac-badge').className='badge fw';$('lac-badge').textContent='fase · Hex';
+    if(active&&last){phase=redSust?3:z>=4?2:1;$('lac-val').innerHTML=redSust?'≥ ~4<small>mmol/L</small>':z>=4?'≈ 4<small>mmol/L</small>':'< ~4<small>mmol/L</small>';$('lac-range').textContent=redSust?'Zona roja sostenida ≥30 s':z>=4?'Aproximándose al límite':'Bajo el umbral'}
+    else{$('lac-val').innerHTML='—';$('lac-range').textContent=M?'Calibrado · inicia una sesión':'Sin calibrar'}
+    $('lac-src').textContent=M?'':'Valor numérico tras calibrar con ≥3 muestras capilares'}
+  card.style.setProperty('--lacc',phase===3?'#ff001f':phase===2?'#f39412':phase===1?'#00acff':'#5a5c6b');
+  $('ph-name').textContent=phase?PHASE_NAME[phase]:'—';[1,2,3].forEach(i=>$('ph'+i).classList.toggle('on',phase===i));
+  $('ph-lt').textContent=M?`FC LT1 (2 mmol/L) ${M.lt1Hr?Math.round(M.lt1Hr)+' lpm':'—'} · LT2 (4 mmol/L) ${M.lt2Hr?Math.round(M.lt2Hr)+' lpm':'—'}`:'LT1 / LT2: requiere calibración';
+  const le=(rec.lacEst||[]).filter(x=>x.t>=rec.elapsed-60);if(M&&le.length>=10){const mx=mean(le.map(x=>x.t)),my=mean(le.map(x=>x.v));let sxy=0,sxx=0;le.forEach(x=>{sxy+=(x.t-mx)*(x.v-my);sxx+=(x.t-mx)**2});const sl=sxx?sxy/sxx*60:0;
+    $('lac-trend').textContent=(sl>0.05?'↑ +':sl<-0.05?'↓ ':'→ ')+r1(sl);$('lac-acc').textContent=sl>0.3?'Acumulando: el lactato sube rápido':sl<-0.2?'Aclarando lactato':'Estable'}
+  else{$('lac-trend').textContent='—';$('lac-acc').textContent=M?'':'Disponible con calibración'}
+  const lm=[...(rec.markers||[])].reverse().find(m=>fin(m.lac));$('lac-last').innerHTML=lm?r1(lm.lac)+'<small style="font-size:13px;color:var(--muted)"> mmol/L</small>':'—';
+  $('lac-last-t').textContent=lm?`hace ${fmtTime(rec.elapsed-lm.t)}${lm.stage?' · fase '+lm.stage:''}`:'Registra lactato capilar con «Registrar muestra»';
+  $('lac-cal-t').textContent=M?`Calibración: ${new Date(M.date).toLocaleDateString('es-CL')} · ${M.n} muestras · ±${r1(M.fh.rmse+0.2)} mmol/L${M.simulated?' · DEMO':''}`:''}
+function lactateCurveChart(M,light){if(!M)return'';const lo=Math.floor(M.hrMin-5),hi=Math.ceil(M.hrMax+5),curve=[];for(let h=lo;h<=hi;h+=1)curve.push([h,evalExp(M.fh,h)]);
+  const ys=[...M.pts.map(p=>p.lac),...curve.map(c=>c[1])],dom=[0,Math.max(6,Math.ceil(Math.max(...ys)+0.5))],marks=[];
+  if(M.lt1Hr&&M.lt1Hr>=lo&&M.lt1Hr<=hi)marks.push({t:M.lt1Hr,color:light?'#0b7fbf':'#00acff',dash:'4 3',width:1.5,label:'LT1 '+Math.round(M.lt1Hr)});
+  if(M.lt2Hr&&M.lt2Hr>=lo&&M.lt2Hr<=hi)marks.push({t:M.lt2Hr,color:light?'#c8102e':'#ff001f',dash:'4 3',width:1.5,label:'LT2 '+Math.round(M.lt2Hr)});
+  return chart({w:light?760:cw('lac-cal',700)-10,h:200,t:[lo,hi],labels:true,light,aria:'Curva lactato–FC',marks,series:[{data:curve,dom,color:light?'#d18a00':'#ffd166',width:2,straight:true},{data:M.pts.filter(p=>p.hr!=null).map(p=>[p.hr,p.lac]),dom,color:light?'#b0122f':'#ff8a9b',width:0.01,straight:true,dots:true}]})+`<div class="axis"><span>${lo} lpm</span><span>FC (lpm) → lactato (mmol/L)</span><span>${hi} lpm</span></div>`}
+function renderLacCal(){const u=activeUser(),el=$('lac-cal');if(!el)return;if(!u){el.innerHTML='<div class="empty"><span>Selecciona un deportista.</span></div>';return}
+  const M=lactateModel(u.id);if(!M){el.innerHTML=`<p class="note">${esc(u.name)} aún no tiene calibración. Haz una prueba de umbral y registra el <b>lactato capilar al final de cada fase</b> con «Registrar muestra» (3 o más puntos). Mientras tanto, la app muestra la <b>fase</b> según la zona roja del Hex, sin un valor numérico.</p>`;return}
+  el.innerHTML=`<div class="grid g3" style="gap:8px;margin-bottom:8px"><div class="kpi-box"><span>FC LT1 · 2 mmol/L</span><b>${M.lt1Hr?Math.round(M.lt1Hr):'—'}</b></div><div class="kpi-box"><span>FC LT2 · 4 mmol/L</span><b>${M.lt2Hr?Math.round(M.lt2Hr):'—'}</b></div><div class="kpi-box"><span>Error del ajuste</span><b>±${r1(M.fh.rmse)}</b></div></div>
+    <div class="chart">${lactateCurveChart(M,false)}</div><p class="foot">Sesión del ${esc(new Date(M.date).toLocaleDateString('es-CL'))} · ${M.n} muestras · rango calibrado ${Math.round(M.hrMin)}–${Math.round(M.hrMax)} lpm${M.fd?' · también por desaturación de SmO₂':''}${M.simulated?' · <b>DATOS SIMULADOS</b>':''}. Recalibra cada 4–8 semanas o tras cambios de entrenamiento.</p>`}
+function sessionLacSection(s,light){const pts=lacPoints(s).filter(p=>p.hr!=null);if(pts.length<3)return'';const fh=fitExp(pts.map(p=>p.hr),pts.map(p=>p.lac));if(!fh)return'';
+  const M={fh,pts,hrMin:Math.min(...pts.map(p=>p.hr)),hrMax:Math.max(...pts.map(p=>p.hr)),lt1Hr:invExp(fh,2),lt2Hr:invExp(fh,4)};
+  const thr=s.threshold,cmp=[];if(M.lt2Hr){if(thr?.status==='ok'){const h=s.hr.filter(x=>Math.abs(x.t-thr.timeSec)<=15).map(x=>x.bpm);if(h.length)cmp.push(`bilineal SmO₂ ${Math.round(mean(h))} lpm (${mean(h)-M.lt2Hr>=0?'+':''}${Math.round(mean(h)-M.lt2Hr)})`)}
+    if(thr?.red){const h=s.hr.filter(x=>Math.abs(x.t-thr.red.timeSec)<=15).map(x=>x.bpm);if(h.length)cmp.push(`inicio zona roja ${Math.round(mean(h))} lpm (${mean(h)-M.lt2Hr>=0?'+':''}${Math.round(mean(h)-M.lt2Hr)})`)}
+    const dt=dfaThresholds(s.dfa);if(dt?.status==='ok')cmp.push(`DFA‑α1 0,5 ${dt.vt2} lpm (${dt.vt2-M.lt2Hr>=0?'+':''}${Math.round(dt.vt2-M.lt2Hr)})`)}
+  return`${light?'<h2>Curva de lactato</h2>':'<p class="label" style="margin-top:14px">Curva de lactato</p>'}<div class="${light?'rchart':'chart'}">${lactateCurveChart(M,light)}</div><p ${light?'style="font-size:11px"':'class="foot"'}>Lactato medido: FC en 2 mmol/L (LT1) <b>${M.lt1Hr?Math.round(M.lt1Hr)+' lpm':'—'}</b> · en 4 mmol/L (LT2) <b>${M.lt2Hr?Math.round(M.lt2Hr)+' lpm':'—'}</b> · error del ajuste ±${r1(fh.rmse)} mmol/L.${cmp.length?' Comparado con LT2: '+cmp.join(' · ')+'.':''}</p>`}
+
 /* ── Tendencia de SmO₂ (pendiente de los últimos 20 s) ─────────────────────── */
 function trendInfo(win=20){const t1=rec.elapsed,pts=rec.calc.filter(c=>c.t>=t1-win);if(pts.length<5)return null;
   const n=pts.length,mx=mean(pts.map(c=>c.t)),my=mean(pts.map(c=>c.smo2));let sxy=0,sxx=0;pts.forEach(c=>{sxy+=(c.t-mx)*(c.smo2-my);sxx+=(c.t-mx)**2});
@@ -1085,11 +1166,11 @@ function loop(){
     const ci=currentIntensity();
     if(rec.source==='demo'&&rec.protocol&&rec.protocol.stopAt==null&&demoIntensity(rec.elapsed)>demo.lt*1.4){toast('Demo: el deportista simulado llegó al agotamiento.');startRecoveryPhase()}
     if(ci&&ci.recovery&&ci.left<=0&&rec.state==='recording'){toast('Prueba de umbral completada.','ok');voiceEvent('Prueba completada');finishRecording(true);return}
-    if(ci&&!ci.recovery&&ci.stage!==stageAnnounced){stageAnnounced=ci.stage;if(ci.stage>1){toast(`Fase ${ci.stage}: sube a ${r1(ci.value)} ${protoUnit(rec.protocol)}`,'ok');voiceEvent(`Fase ${ci.stage}. Sube a ${r1(ci.value)} ${rec.protocol.mode==='run'?'kilómetros por hora':'vatios'}`)}}
+    if(ci&&!ci.recovery&&ci.stage!==stageAnnounced){stageAnnounced=ci.stage;if(ci.stage>1){if(rec.source==='demo'){const P=rec.protocol.mode==='run'?(ci.value-rec.protocol.step)*demo.lt/12:ci.value-rec.protocol.step,lac=Math.max(0.7,0.9+3.1*Math.exp((P-demo.lt)/55)+gauss()*0.15);rec.markers.push({t:+(rec.elapsed-1).toFixed(1),stage:ci.stage-1,lac:+lac.toFixed(1),note:'lactato simulado (demo)'})}toast(`Fase ${ci.stage}: sube a ${r1(ci.value)} ${protoUnit(rec.protocol)}`,'ok');voiceEvent(`Fase ${ci.stage}. Sube a ${r1(ci.value)} ${rec.protocol.mode==='run'?'kilómetros por hora':'vatios'}`)}}
     if(rec.protocol&&rec.protocol.stopAt==null&&!rec.redSaid){const r5=rec.calc.filter(c=>c.t>=rec.elapsed-30);if(r5.length>=20&&r5.every(c=>zoneIdx(c.zone)===5)){rec.redSaid=true;toast('Zona roja sostenida: inicio ≈ 4 mmol/L de lactato.');voiceEvent('Zona roja sostenida')}}
     checkWarmup();voiceTick();dfaTick();
   }else rec.lastTick=now;
-  if(now-lastRender>240){lastRender=now;renderLive();renderThresholdLive();renderRates();renderBig()}
+  if(now-lastRender>240){lastRender=now;renderLive();renderLactate();renderThresholdLive();renderRates();renderBig()}
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -1269,7 +1350,7 @@ function exportRawIfAny(s){if(!rec.raw.length)return;const head='t_s,raw1a,raw2a
 /* ════════════════════════════════════════════════════════════════════════════
    DEPORTISTAS
    ════════════════════════════════════════════════════════════════════════════ */
-function renderUsers(){
+function renderUsers(){setTimeout(renderLacCal,0);
   const list=$('user-list');
   if(!db.users.length){list.innerHTML='<div class="empty"><b>Aún no hay deportistas</b><span>Crea la primera ficha con el formulario.</span></div>'}
   else list.innerHTML=db.users.map(u=>{const a=age(u.birth),n=db.sessions.filter(s=>s.userId===u.id).length;return`<div class="user-item ${u.id===db.activeUserId?'active':''}"><span class="avatar">${esc(initials(u.name))}</span><div><b>${esc(u.name)}</b><small>${[a!=null&&a+' años',u.sport,u.weight&&u.weight+' kg',n+' sesión'+(n===1?'':'es')].filter(Boolean).map(esc).join(' · ')}</small></div><div class="actions">${u.id===db.activeUserId?'<span class="pill ok">Activo</span>':`<button class="btn sm primary" data-act="use" data-id="${u.id}">Usar</button>`}<button class="btn sm" data-act="edit" data-id="${u.id}">Editar</button><button class="btn sm danger" data-act="del" data-id="${u.id}" aria-label="Eliminar">✕</button></div></div>`}).join('');
@@ -1332,6 +1413,7 @@ function renderSessionDetail(s){
   ${(()=>{const I=analyzeIntervals(s);return I.length>=2?`<p class="label" style="margin-top:14px">Esfuerzos y recuperaciones</p><div class="scroll-x">${intervalTable(I)}</div><p class="foot">${esc(fatigueNote(I))}</p>`:''})()}
   ${s.warmupAt!=null?`<p class="foot">Calentamiento listo a los ${fmtTime(s.warmupAt)}.</p>`:''}
   ${s.markers?.length?`<p class="label" style="margin-top:14px">Muestras registradas</p><div class="scroll-x">${markerTable(s.markers)}</div>`:''}
+  ${sessionLacSection(s,false)}
   ${dfaHtml(s.dfa)}${s.research?'<p class="foot"><span class="badge res">Modo investigación</span> El paquete completo se descargó al guardar.</p>':''}`;
   renderZoneDist($('hd-zbar'),$('hd-zones'),zt,true);
 }
@@ -1407,6 +1489,7 @@ function reportHtml(s){
   ${(()=>{const L=lapStats(s);return L.length?`<h2>Vueltas</h2>${lapTable(L)}<p style="font-size:10px;color:#5f6b7f">Mesetas: máximo y mínimo de la media móvil de 10 s dentro de cada vuelta.</p>`:''})()}
   ${(()=>{const I=analyzeIntervals(s);return I.length>=2?`<h2>Esfuerzos y recuperaciones</h2>${intervalTable(I)}<div class="rbox" style="margin-top:6px">${esc(fatigueNote(I))} <span style="color:#5f6b7f">Esfuerzo = zona 4–5 sostenida ≥10 s. T½ = segundos desde el valle hasta recuperar el 50 % hacia el pico de la recuperación.</span></div>`:''})()}
   ${s.markers?.length?`<h2>Muestras registradas</h2>${markerTable(s.markers)}`:''}
+  ${sessionLacSection(s,true)}
   ${dfaThresholds(s.dfa)?`<h2>Variabilidad de la FC (DFA‑α1)</h2>${dfaHtml(s.dfa)}<p style="font-size:10px;color:#5f6b7f">α1 ≈ 0,75 se asocia a VT1 y α1 ≈ 0,5 a VT2 (Rogers et al. 2021). Estimación experimental: requiere banda torácica con intervalos RR y baja tasa de artefactos.</p>`:''}
   <h2>Síntesis</h2><p>${esc(interpret(s))}${s.warmupAt!=null?` El calentamiento se completó a los ${fmtTime(s.warmupAt)} (la SmO₂ subió y se estabilizó).`:''}</p>
   <h2>Notas de interpretación</h2><ul style="margin:0;padding-left:16px;font-size:11px;color:#3b4456">

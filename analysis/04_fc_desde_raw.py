@@ -11,7 +11,12 @@ Criterio: el pulso está presente si en ≥2 canales el pico cae a ±5 lpm de la
 banda y supera 3 veces la mediana del espectro. Sobre ~120 lpm la FC se
 pliega (aliasing) y este método no sirve sin información adicional.
 
-Uso: python 04_fc_desde_raw.py paquete.json [--desde 30 --hasta 150]
+Uso: python 04_fc_desde_raw.py paquete.json [--desde 30 --hasta 150] [--ventanas 60]
+
+Con --ventanas N repite el análisis en ventanas de N s (paso N/2) y compara el
+pico combinado de los 8 canales con la FC de la banda en cada ventana: un pulso
+real debe SEGUIR los cambios de FC, no quedarse fijo (un pico fijo sugiere un
+artefacto, p. ej. el parpadeo de la luz artificial plegado por el muestreo).
 """
 import sys
 
@@ -54,6 +59,32 @@ def main(args):
         hits += ok
         print(f"  {ch}: pico {bpm:5.1f} lpm · SNR {snr:4.1f} · {'COINCIDE' if ok else '—'}")
     print("\nResultado:", "pulso detectable en reposo" if hits >= 2 else "sin evidencia de pulso utilizable", f"({hits}/8 canales)")
+    if "--ventanas" in args:
+        w = float(args[args.index("--ventanas") + 1])
+        chs = [c for c in seg.columns if c.startswith("raw")]
+        rows = []
+        for a in np.arange(t0, t1 - w + 1e-9, w / 2):
+            sw = raw[(raw["t_s"] >= a) & (raw["t_s"] < a + w)]
+            if len(sw) < w * 2:
+                continue
+            tw, _ = rhx.time_axis(sw, pkg)
+            P = np.zeros_like(freqs)
+            for ch in chs:
+                y = detrend(sw[ch].to_numpy(float))
+                y = (y - y.mean()) / (y.std() or 1)
+                P += lombscargle(tw, y, 2 * np.pi * freqs, normalize=True)
+            k = int(np.argmax(P))
+            rw = hr[(hr["t_s"] >= a) & (hr["t_s"] < a + w)]["bpm"].mean() if not hr.empty else np.nan
+            rows.append((a, rw, freqs[k] * 60, P[k] / np.median(P)))
+        print(f"\nVentanas de {w:.0f} s:")
+        for a, rw, b, snr in rows:
+            print(f"  {a:6.0f} s  banda {rw:5.1f}  Hex {b:5.1f}  SNR {snr:5.1f}  {'OK' if abs(b - rw) <= 5 else '—'}")
+        if len(rows) >= 3:
+            r = np.array(rows)
+            ok = np.abs(r[:, 2] - r[:, 1]) <= 5
+            corr = np.corrcoef(r[:, 1], r[:, 2])[0, 1] if np.std(r[:, 1]) > 0 and np.std(r[:, 2]) > 0 else float("nan")
+            print(f"Ventanas dentro de ±5 lpm: {ok.sum()}/{len(r)} · correlación Hex–banda r = {corr:.2f}")
+            print("Para confirmar un pulso real, la FC debe variar (p. ej., reposo y pedaleo suave hasta ~100 lpm) y el pico del Hex seguirla.")
 
 
 if __name__ == "__main__":
